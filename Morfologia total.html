@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Morfología - Wisdom Corner Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        .bg-wisdom-blue { background-color: #1e3a8a; }
+        .text-wisdom-blue { color: #1e3a8a; }
+        .bg-wisdom-gold { background-color: #d97706; }
+        .text-wisdom-gold { color: #d97706; }
+        .border-wisdom-gold { border-color: #d97706; }
+
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #d97706;
+            transition: width 0.3s ease;
+        }
+
+        .option-btn {
+            width: 100%;
+            text-align: left;
+            padding: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.2s ease;
+            font-size: 1.05rem;
+            color: #334155;
+            cursor: pointer;
+        }
+        .option-btn:hover:not(:disabled) {
+            border-color: #93c5fd;
+            background-color: #eff6ff;
+        }
+        .option-btn.selected {
+            border-color: #1e3a8a;
+            background-color: #eff6ff;
+            font-weight: 600;
+        }
+        .option-btn.correct {
+            border-color: #10b981;
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .option-btn.incorrect {
+            border-color: #ef4444;
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .profe-tip {
+            display: flex;
+            align-items: center;
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-left: 5px solid #0ea5e9;
+            padding: 16px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d97706;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .locked-card {
+            opacity: 0.6;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+            position: relative;
+        }
+        .locked-card::after {
+            content: '🔒 Bloqueado';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-10deg);
+            background: #1e3a8a;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables setup
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-wisdom-corner';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        let initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase safely
+        let app, db, auth;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (e) {
+            console.warn("Firebase config no provista, usando modo en memoria o config por defecto.");
+        }
+
+        window.firebaseDB = db;
+        window.firebaseAuth = auth;
+        window.signInAnonymously = signInAnonymously;
+        window.signInWithCustomToken = signInWithCustomToken;
+        window.initialAuthToken = initialAuthToken;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        
+        // Dispatch event when Firebase is ready
+        document.dispatchEvent(new Event('firebaseReady'));
+    </script>
+
+    <div class="app-container">
+        
+        <!-- Header Global -->
+        <header class="text-center mb-8">
+            <img src="https://lh3.googleusercontent.com/gg-dl/AHiVA1lLhnduIYMpgxIUA79m3BwrpjmOosnZ4gHtX8hEhtdRQ6-v4f64vj7y4WWnrUzuJ4eVzr_Mt9167xiNbHH_Ota7joU5byox8zg8uE8G4x_zvkTm0RPx1JcrZ-cpHd0QCsGZbPOLB26qZroJRo19PHNa6hCDVFMu04Xu4iRr_12LbSNb6Q" alt="Wisdom Corner Academy Logo" class="h-24 mx-auto mb-4 drop-shadow-md">
+            <h1 class="text-3xl font-extrabold text-wisdom-blue tracking-tight">Reto Morfológico</h1>
+            <p class="text-gray-500 font-medium">Nivel: 3º ESO</p>
+        </header>
+
+        <!-- PANTALLA 1: LOGIN -->
+        <div id="screen-login" class="screen active max-w-md mx-auto w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Bienvenido!</h2>
+                <p class="text-gray-600 text-sm">Identifícate para comenzar tu aventura gramatical.</p>
+            </div>
+            
+            <div class="bg-blue-50 border-l-4 border-wisdom-gold p-4 mb-6 rounded-r-lg">
+                <p class="text-sm text-blue-800 font-medium">
+                    <strong>Importante:</strong> Tu progreso se guardará automáticamente con tu nombre. ¡Puedes salir y continuar exactamente donde lo dejaste en cualquier momento!
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="playerName" class="block text-sm font-semibold text-gray-700 mb-1">Nombre y Apellido</label>
+                    <input type="text" id="playerName" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-wisdom-gold focus:border-wisdom-gold outline-none transition-shadow" placeholder="Ej. Juan Pérez">
+                </div>
+                <button id="btnLogin" class="w-full bg-wisdom-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    Comenzar <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+                <div id="loginError" class="text-red-500 text-sm text-center hidden">Por favor, introduce tu nombre.</div>
+                <div id="loginLoading" class="text-wisdom-gold text-sm text-center font-semibold hidden">Cargando progreso...</div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 2: DASHBOARD -->
+        <div id="screen-dashboard" class="screen w-full">
+            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Estudiante</p>
+                    <p id="dashboardPlayerName" class="text-xl font-bold text-wisdom-blue">Cargando...</p>
+                </div>
+                <button id="btnLogout" class="text-gray-500 hover:text-red-600 text-sm font-semibold underline transition-colors">Cambiar Usuario</button>
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Categorías (20 ejercicios c/u)</h2>
+            <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <!-- Se inyectan por JS -->
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-t pt-6">El Desafío Final</h2>
+            <div id="finalChallengeCard" class="bg-gradient-to-r from-wisdom-blue to-blue-700 rounded-2xl p-6 text-white shadow-lg transition-transform hover:scale-[1.01] cursor-pointer locked-card" onclick="startGame('textos')">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-wisdom-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg>
+                            Análisis de Textos Combinados
+                        </h3>
+                        <p class="text-blue-100 text-sm max-w-md">Pon a prueba todo lo aprendido localizando diferentes tipos de palabras en textos reales. (10 ejercicios)</p>
+                        <div class="mt-4">
+                            <p class="text-xs font-semibold mb-1 text-blue-200">Progreso: <span id="progress-textos">0</span>/10</p>
+                            <div class="w-full bg-blue-900 rounded-full height-2 mt-1">
+                                <div id="bar-textos" class="bg-wisdom-gold h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden md:block">
+                        <img src="https://lh3.googleusercontent.com/gg-dl/AHiVA1kGJkQc6CVSsj7EcaQi4yNnyWQa90D4exTw2Kx3WUsGDQQvY4_0qQkY0HETj4NJNVg7ujvW1jCCof75oxvwG5j_UPYqjYGLP5ZCtdK9a1hU_yL31dMH1IuzrGLiQNHGPIL-2xj09W6cq6om7M732DcoRh5MreBQhttcOokFLo3ovTKgSw" alt="Profesor" class="w-24 h-24 bg-white rounded-full border-4 border-wisdom-gold object-cover shadow-inner">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 3: GAMEPLAY -->
+        <div id="screen-game" class="screen w-full max-w-3xl mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="showScreen('screen-dashboard')" class="text-wisdom-blue font-semibold flex items-center gap-1 hover:underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Volver al Menú
+                </button>
+                <div class="bg-white px-4 py-1 rounded-full shadow-sm border border-gray-200 font-bold text-gray-700">
+                    <span id="gameCategoryTitle" class="text-wisdom-gold mr-2">Sustantivos</span> 
+                    <span id="gameProgressText">0/20</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[400px]">
+                
+                <!-- Loading State -->
+                <div id="gameLoading" class="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                    <div class="loader mb-4"></div>
+                    <h3 class="text-lg font-semibold text-wisdom-blue">El profesor está preparando el ejercicio...</h3>
+                    <p class="text-gray-500 text-sm mt-2">Generando con IA para tu nivel.</p>
+                </div>
+
+                <!-- Game Content -->
+                <div id="gameContent" class="hidden flex-1 flex flex-col">
+                    <div class="p-6 md:p-8 flex-1">
+                        <!-- For Final Challenge Texts -->
+                        <div id="contextTextContainer" class="hidden mb-6 bg-blue-50 border-l-4 border-wisdom-blue p-4 rounded-r-lg italic text-gray-800 text-lg shadow-inner">
+                            "Aquí va el texto generado..."
+                        </div>
+
+                        <h3 id="questionText" class="text-xl md:text-2xl font-bold text-gray-800 mb-8 leading-tight">¿Pregunta generada?</h3>
+                        
+                        <div id="optionsContainer" class="space-y-3">
+                            <!-- Opciones generadas por JS -->
+                        </div>
+                    </div>
+
+                    <!-- Feedback & Actions Area -->
+                    <div class="bg-gray-50 p-6 border-t border-gray-100">
+                        <button id="btnCheck" disabled class="w-full bg-wisdom-blue hover:bg-blue-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition-colors shadow-md text-lg">
+                            Comprobar
+                        </button>
+                        
+                        <div id="feedbackContainer" class="hidden mt-6">
+                            <div class="profe-tip">
+                                <img id="profeAvatar" src="https://lh3.googleusercontent.com/gg-dl/AHiVA1nUeOH4zjyJ1u2iAlfmh3OyZy-_iLRgCD5NVrTuedx6dbGxUdgVxZK5uvKJqFyxJcI0BMZcconTxidQ4yyb_eGDCzF3q10sRq002ci-T3Ftww35I-hTG1A48fTc-wq7T8ImxsLPl5bJXLOfbK3cmpSnPXNPPWGSg_ggUahIF4h5iZQI-Q" alt="Profesor">
+                                <div class="flex-1">
+                                    <strong id="feedbackTitle" class="block text-lg mb-1 text-wisdom-blue">Resultado</strong>
+                                    <p id="feedbackText" class="text-gray-700 text-sm leading-relaxed">Pista o explicación...</p>
+                                </div>
+                            </div>
+                            <button id="btnNext" class="w-full bg-wisdom-gold hover:bg-yellow-600 text-white font-bold py-4 px-6 rounded-xl transition-colors shadow-md text-lg mt-4 hidden">
+                                Siguiente Ejercicio <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Finished State -->
+                <div id="gameFinished" class="hidden flex-1 flex flex-col items-center justify-center p-12 text-center bg-green-50">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-green-800 mb-2">¡Categoría Completada!</h3>
+                    <p class="text-green-700 mb-8">Has dominado todos los ejercicios de esta sección.</p>
+                    <button onclick="showScreen('screen-dashboard')" class="bg-wisdom-blue hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors">
+                        Volver al Menú
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN LOGIC -->
+    <script>
+        // CONFIGURACIÓN DE CATEGORÍAS
+        const CATEGORIES = [
+            { id: 'sustantivos', name: 'Sustantivos', icon: '📝' },
+            { id: 'adjetivos', name: 'Adjetivos', icon: '🎨' },
+            { id: 'determinantes', name: 'Determinantes', icon: '👉' },
+            { id: 'pronombres', name: 'Pronombres', icon: '🎭' },
+            { id: 'verbos', name: 'Verbos', icon: '🏃' },
+            { id: 'perifrasis', name: 'Perífrasis Verbales', icon: '🔗' },
+            { id: 'adverbios', name: 'Adverbios', icon: '📍' },
+            { id: 'preposiciones', name: 'Preposiciones', icon: '🌉' },
+            { id: 'conjunciones', name: 'Conjunciones', icon: '🤝' },
+            { id: 'interjecciones', name: 'Interjecciones', icon: '❗' }
+        ];
+
+        const MAX_NORMAL = 20;
+        const MAX_FINAL = 10;
+        const AVATAR_THINKING = "https://lh3.googleusercontent.com/gg-dl/AHiVA1nUeOH4zjyJ1u2iAlfmh3OyZy-_iLRgCD5NVrTuedx6dbGxUdgVxZK5uvKJqFyxJcI0BMZcconTxidQ4yyb_eGDCzF3q10sRq002ci-T3Ftww35I-hTG1A48fTc-wq7T8ImxsLPl5bJXLOfbK3cmpSnPXNPPWGSg_ggUahIF4h5iZQI-Q";
+        const AVATAR_HAPPY = "https://lh3.googleusercontent.com/gg-dl/AHiVA1nz204kG8QZMWx9SvNqCaVJ_Bl_JODrVreKb4gQR0mJ5uLaAenryLNnIs6sYKwnAiHaA21cWa9VgkIgYJ6iTeZWkNJEfJBNh6-4vbU_NBQArQT1adkYDSJaKEgEyv-yjxaz_DFL3gA--sQUZ9zRcO5VoM1ffdaUXCuMf_uYTmFp3HMB2Q";
+        const AVATAR_WORRIED = "https://lh3.googleusercontent.com/gg-dl/AHiVA1m4fAkjrKx2NCC1GuA5SJEHfxVO_e5Nc8wp6hHBJTxPnJDYVtXC9DhOeZPuN7_xceKOB3_yIOm-oevis1Af5LFfD3eejqLq9x3byIjUmCXR5e8raA50eO94Y3p3-P5UMVbwGMU89rv5z9tux0g5YSw3kpaSKiJp-TX3DPNJZgBTwhlbrg";
+
+        // ESTADO GLOBAL
+        let currentUser = null; // { sanitizedName, originalName }
+        let currentProgress = {};
+        let currentCategory = null;
+        let currentQuestionData = null;
+        let selectedOptionIndex = null;
+        let isFirebaseReady = false;
+
+        // INICIALIZACIÓN
+        document.addEventListener('firebaseReady', () => {
+            isFirebaseReady = true;
+            console.log("Firebase listísimo");
+        });
+
+        document.getElementById('btnLogin').addEventListener('click', handleLogin);
+        document.getElementById('btnLogout').addEventListener('click', handleLogout);
+        document.getElementById('btnCheck').addEventListener('click', checkAnswer);
+        document.getElementById('btnNext').addEventListener('click', loadNextQuestion);
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // --- SISTEMA DE LOGIN Y GUARDADO (FIREBASE PUBLIC COLLECTION BY NAME) ---
+        function sanitizeName(name) {
+            return name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+
+        async function handleLogin() {
+            if (!isFirebaseReady) {
+                alert("Conectando con la base de datos... inténtalo en un segundo.");
+                return;
+            }
+
+            const nameInput = document.getElementById('playerName').value.trim();
+            if (!nameInput) {
+                document.getElementById('loginError').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginLoading').classList.remove('hidden');
+            document.getElementById('btnLogin').disabled = true;
+
+            try {
+                // 1. Auth anónimo (Obligatorio para leer/escribir Firebase en Canvas)
+                if (window.initialAuthToken) {
+                    await window.signInWithCustomToken(window.firebaseAuth, window.initialAuthToken);
+                } else {
+                    await window.signInAnonymously(window.firebaseAuth);
+                }
+
+                // 2. Crear ID seguro basado en el nombre
+                const safeId = sanitizeName(nameInput);
+                currentUser = {
+                    id: safeId,
+                    name: nameInput
+                };
+
+                // 3. Cargar progreso desde Firebase (Colección pública compartida por App ID)
+                const docRef = window.doc(window.firebaseDB, 'artifacts', window.appId, 'public', 'data', 'jugadores', safeId);
+                const docSnap = await window.getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    currentProgress = docSnap.data().progress || {};
+                } else {
+                    // Inicializar progreso
+                    currentProgress = {};
+                    CATEGORIES.forEach(c => currentProgress[c.id] = 0);
+                    currentProgress['textos'] = 0;
+                    await window.setDoc(docRef, { 
+                        name: nameInput,
+                        progress: currentProgress,
+                        lastLogin: new Date().toISOString()
+                    });
+                }
+
+                // 4. Preparar Dashboard y cambiar pantalla
+                document.getElementById('dashboardPlayerName').innerText = currentUser.name;
+                renderDashboard();
+                showScreen('screen-dashboard');
+
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                alert("Hubo un error al conectar con el servidor. Inténtalo de nuevo.");
+            } finally {
+                document.getElementById('loginLoading').classList.add('hidden');
+                document.getElementById('btnLogin').disabled = false;
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            currentProgress = {};
+            document.getElementById('playerName').value = '';
+            showScreen('screen-login');
+        }
+
+        async function saveProgressToDB() {
+            if (!currentUser || !isFirebaseReady) return;
+            try {
+                const docRef = window.doc(window.firebaseDB, 'artifacts', window.appId, 'public', 'data', 'jugadores', currentUser.id);
+                await window.setDoc(docRef, { 
+                    name: currentUser.name,
+                    progress: currentProgress,
+                    lastUpdate: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Error guardando progreso:", e);
+            }
+        }
+
+        // --- DASHBOARD RENDER ---
+        function renderDashboard() {
+            const grid = document.getElementById('categoriesGrid');
+            grid.innerHTML = '';
+            
+            let allCompleted = true;
+
+            CATEGORIES.forEach(cat => {
+                const progress = currentProgress[cat.id] || 0;
+                const percent = (progress / MAX_NORMAL) * 100;
+                if (progress < MAX_NORMAL) allCompleted = false;
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between";
+                card.onclick = () => startGame(cat.id);
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-3xl">${cat.icon}</span>
+                        <h3 class="font-bold text-gray-800 text-lg leading-tight">${cat.name}</h3>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm font-semibold mb-1 ${progress === MAX_NORMAL ? 'text-green-600' : 'text-gray-500'}">
+                            <span>${progress === MAX_NORMAL ? '¡Completado!' : 'Progreso'}</span>
+                            <span>${progress}/${MAX_NORMAL}</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar ${progress === MAX_NORMAL ? 'bg-green-500' : ''}" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Lógica Desafío Final
+            const finalCard = document.getElementById('finalChallengeCard');
+            const pTextos = currentProgress['textos'] || 0;
+            document.getElementById('progress-textos').innerText = pTextos;
+            document.getElementById('bar-textos').style.width = `${(pTextos / MAX_FINAL) * 100}%`;
+
+            if (allCompleted) {
+                finalCard.classList.remove('locked-card');
+                // Sobrescribir onclick en caso de que estuviera bloqueado mentalmente
+                finalCard.onclick = () => startGame('textos');
+            } else {
+                finalCard.classList.add('locked-card');
+                finalCard.onclick = (e) => {
+                    e.preventDefault();
+                    alert("Debes completar los 20 ejercicios de TODAS las categorías anteriores para desbloquear el Desafío Final.");
+                };
+            }
+        }
+
+        // --- LÓGICA DEL JUEGO Y GEMINI API ---
+        async function startGame(categoryId) {
+            currentCategory = categoryId;
+            const maxVal = categoryId === 'textos' ? MAX_FINAL : MAX_NORMAL;
+            const currentVal = currentProgress[categoryId] || 0;
+
+            let titleName = categoryId === 'textos' ? 'Análisis de Textos' : CATEGORIES.find(c => c.id === categoryId).name;
+            document.getElementById('gameCategoryTitle').innerText = titleName;
+            document.getElementById('gameProgressText').innerText = `${currentVal}/${maxVal}`;
+
+            showScreen('screen-game');
+            
+            if (currentVal >= maxVal) {
+                showFinishedState();
+            } else {
+                await loadNextQuestion();
+            }
+        }
+
+        function showFinishedState() {
+            document.getElementById('gameLoading').classList.add('hidden');
+            document.getElementById('gameContent').classList.add('hidden');
+            document.getElementById('gameFinished').classList.remove('hidden');
+            renderDashboard(); // Actualizar dashboard por si acaso
+        }
+
+        async function loadNextQuestion() {
+            // Reset UI
+            document.getElementById('gameLoading').classList.remove('hidden');
+            document.getElementById('gameContent').classList.add('hidden');
+            document.getElementById('gameFinished').classList.add('hidden');
+            document.getElementById('feedbackContainer').classList.add('hidden');
+            document.getElementById('btnCheck').disabled = true;
+            document.getElementById('btnCheck').classList.remove('hidden');
+            selectedOptionIndex = null;
+            currentQuestionData = null;
+
+            try {
+                currentQuestionData = await fetchQuestionFromGemini(currentCategory);
+                renderQuestionUI();
+            } catch (error) {
+                console.error("Error cargando pregunta:", error);
+                document.getElementById('gameLoading').innerHTML = `
+                    <h3 class="text-red-600 font-bold mb-2">Error de conexión</h3>
+                    <p class="text-sm">El profesor se ha quedado sin tiza. Inténtalo de nuevo.</p>
+                    <button onclick="loadNextQuestion()" class="mt-4 bg-wisdom-blue text-white px-4 py-2 rounded">Reintentar</button>
+                    <button onclick="showScreen('screen-dashboard')" class="mt-4 bg-gray-200 text-gray-800 px-4 py-2 rounded ml-2">Volver</button>
+                `;
+            }
+        }
+
+        async function fetchQuestionFromGemini(categoryId) {
+            const isFinal = categoryId === 'textos';
+            
+            let prompt = "";
+            let schemaProperties = {};
+
+            if (!isFinal) {
+                const categoryName = CATEGORIES.find(c => c.id === categoryId).name;
+                prompt = `Actúa como un profesor de lengua española de 3º de la ESO divertido y riguroso. 
+                Genera UNA pregunta de opción múltiple (4 opciones) exclusiva sobre la categoría gramatical: "${categoryName}".
+                La pregunta debe hacer pensar al alumno (ej. localizar en una oración, clasificar subtipos, etc.).
+                La 'pistaFallos' debe explicar de forma didáctica por qué la respuesta correcta es la correcta y por qué la gente suele fallar, usando un tono amigable.`;
+                
+                schemaProperties = {
+                    "pregunta": { "type": "STRING" },
+                    "opciones": { "type": "ARRAY", "items": { "type": "STRING" }, "description": "Exactamente 4 opciones" },
+                    "respuestaCorrecta": { "type": "STRING" },
+                    "pistaFallos": { "type": "STRING" }
+                };
+            } else {
+                prompt = `Actúa como un profesor de lengua española de 3º de la ESO. 
+                Genera un texto breve y original (3-4 líneas) y una pregunta que pida analizar morfológicamente 3 o 4 palabras subrayadas o específicas de ese texto.
+                Crea 4 opciones de respuesta donde solo una ofrezca el análisis gramatical completamente correcto de todas esas palabras.
+                La 'pistaFallos' debe explicar el análisis correcto paso a paso.`;
+                
+                schemaProperties = {
+                    "texto": { "type": "STRING", "description": "Texto breve de 3 o 4 líneas" },
+                    "pregunta": { "type": "STRING" },
+                    "opciones": { "type": "ARRAY", "items": { "type": "STRING" }, "description": "Exactamente 4 opciones de análisis combinados" },
+                    "respuestaCorrecta": { "type": "STRING" },
+                    "pistaFallos": { "type": "STRING" }
+                };
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: schemaProperties,
+                        required: isFinal ? ["texto", "pregunta", "opciones", "respuestaCorrecta", "pistaFallos"] : ["pregunta", "opciones", "respuestaCorrecta", "pistaFallos"]
+                    }
+                }
+            };
+
+            const apiKey = ""; // Canvas proves the API Key dynamically
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            const text = data.candidates[0].content.parts[0].text;
+            return JSON.parse(text);
+        }
+
+        function renderQuestionUI() {
+            document.getElementById('gameLoading').classList.add('hidden');
+            document.getElementById('gameContent').classList.remove('hidden');
+
+            const isFinal = currentCategory === 'textos';
+            const contextContainer = document.getElementById('contextTextContainer');
+            
+            if (isFinal && currentQuestionData.texto) {
+                contextContainer.innerHTML = currentQuestionData.texto;
+                contextContainer.classList.remove('hidden');
+            } else {
+                contextContainer.classList.add('hidden');
+            }
+
+            document.getElementById('questionText').innerText = currentQuestionData.pregunta;
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            // Mezclar opciones para evitar que siempre sea la misma letra
+            let options = [...currentQuestionData.opciones];
+            options = options.sort(() => Math.random() - 0.5);
+            currentQuestionData.opcionesMezcladas = options;
+
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => selectOption(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(index) {
+            selectedOptionIndex = index;
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach((b, i) => {
+                if (i === index) b.classList.add('selected');
+                else b.classList.remove('selected');
+            });
+            document.getElementById('btnCheck').disabled = false;
+        }
+
+        function checkAnswer() {
+            if (selectedOptionIndex === null) return;
+            
+            const selectedText = currentQuestionData.opcionesMezcladas[selectedOptionIndex];
+            const isCorrect = selectedText === currentQuestionData.respuestaCorrecta;
+            
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            // Estilizar botones
+            buttons.forEach((btn) => {
+                btn.disabled = true;
+                if (btn.innerText === currentQuestionData.respuestaCorrecta) {
+                    btn.classList.add('correct');
+                    btn.classList.remove('selected');
+                } else if (btn.classList.contains('selected') && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+            });
+
+            document.getElementById('btnCheck').classList.add('hidden');
+            const feedbackContainer = document.getElementById('feedbackContainer');
+            const fTitle = document.getElementById('feedbackTitle');
+            const fText = document.getElementById('feedbackText');
+            const fAvatar = document.getElementById('profeAvatar');
+            const btnNext = document.getElementById('btnNext');
+
+            feedbackContainer.classList.remove('hidden');
+            btnNext.classList.remove('hidden');
+
+            if (isCorrect) {
+                fTitle.innerText = "¡Excelente, correcto!";
+                fTitle.className = "block text-lg mb-1 text-green-600 font-bold";
+                fText.innerHTML = "Muy bien deducido.<br><br><span class='text-gray-500 italic'>Explicación: " + currentQuestionData.pistaFallos + "</span>";
+                fAvatar.src = AVATAR_HAPPY;
+                
+                // Subir progreso
+                currentProgress[currentCategory]++;
+                const maxVal = currentCategory === 'textos' ? MAX_FINAL : MAX_NORMAL;
+                document.getElementById('gameProgressText').innerText = `${currentProgress[currentCategory]}/${maxVal}`;
+                saveProgressToDB();
+
+                if (currentProgress[currentCategory] >= maxVal) {
+                    btnNext.innerText = "Finalizar Categoría";
+                    btnNext.onclick = showFinishedState;
+                } else {
+                    btnNext.innerText = "Siguiente Ejercicio";
+                    btnNext.onclick = loadNextQuestion;
+                }
+
+            } else {
+                fTitle.innerText = "Vaya, casi...";
+                fTitle.className = "block text-lg mb-1 text-red-600 font-bold";
+                fText.innerText = currentQuestionData.pistaFallos;
+                fAvatar.src = AVATAR_WORRIED;
+                
+                btnNext.innerText = "Intentar con otra pregunta";
+                btnNext.onclick = loadNextQuestion;
+            }
+        }
+
+    </script>
+</body>
+</html>
