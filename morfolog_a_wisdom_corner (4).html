@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wisdom Corner Academy - Morfología</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden-screen { display: none !important; }
+        .bg-wisdom-blue { background-color: #1e3a8a; }
+        .text-wisdom-blue { color: #1e3a8a; }
+        .border-wisdom-blue { border-color: #1e3a8a; }
+        .bg-wisdom-gold { background-color: #d97706; }
+        .text-wisdom-gold { color: #d97706; }
+        .border-wisdom-gold { border-color: #d97706; }
+        
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f0f4f8; }
+        
+        .option-btn { transition: all 0.2s; }
+        .option-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.8; }
+        
+        .bubble {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            border: 2px solid #1e3a8a;
+        }
+        .bubble::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10px;
+            margin-top: -10px;
+            border-width: 10px 10px 10px 0;
+            border-style: solid;
+            border-color: transparent #1e3a8a transparent transparent;
+        }
+        
+        @media (max-width: 768px) {
+            .bubble::after {
+                top: -10px;
+                left: 50%;
+                margin-left: -10px;
+                margin-top: 0;
+                border-width: 0 10px 10px 10px;
+                border-color: transparent transparent #1e3a8a transparent;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="flex-1 flex flex-col items-center justify-center p-4">
+        <img src="logo.png" alt="Wisdom Corner Academy" class="w-72 max-w-full mb-8 bg-white p-4 rounded-xl shadow-md border-b-4 border-wisdom-gold">
+        
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border-t-4 border-wisdom-blue">
+            <h1 class="text-2xl font-bold text-center text-wisdom-blue mb-2">Reto de Morfología</h1>
+            <p class="text-center text-gray-600 mb-6 text-sm">3º ESO - Introduce tu nombre para guardar tu progreso localmente.</p>
+            
+            <input type="text" id="player-name" placeholder="Ej: Laura García" class="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-wisdom-blue focus:outline-none mb-4 font-medium transition-colors" onkeypress="if(event.key === 'Enter') login()">
+            
+            <button onclick="login()" class="w-full bg-wisdom-blue hover:bg-blue-900 text-white font-bold py-3 rounded-lg shadow-md transition-colors text-lg flex justify-center items-center gap-2">
+                Entrar al Aula
+            </button>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SCREEN -->
+    <div id="dashboard-screen" class="hidden-screen flex-1 w-full max-w-5xl mx-auto p-4 py-8">
+        <div class="bg-white rounded-2xl shadow-md p-4 mb-8 flex flex-col sm:flex-row justify-between items-center border-l-4 border-wisdom-gold">
+            <div class="flex items-center gap-4 mb-4 sm:mb-0">
+                <img src="logo.png" alt="Logo" class="h-12 hidden sm:block">
+                <div>
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider">Estudiante</p>
+                    <h2 id="welcome-name" class="text-2xl font-bold text-wisdom-blue">Hola, Estudiante</h2>
+                </div>
+            </div>
+            <button onclick="logout()" class="text-red-500 hover:text-red-700 font-bold px-4 py-2 rounded border border-red-200 hover:bg-red-50 transition-colors">
+                Cerrar Sesión
+            </button>
+        </div>
+
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Categorías Gramaticales</h3>
+        <p class="text-gray-600 mb-6">Debes completar los 20 ejercicios de cada categoría para desbloquear el desafío final.</p>
+
+        <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+            <!-- Renderizado dinámico -->
+        </div>
+
+        <div class="bg-wisdom-blue rounded-2xl shadow-xl p-8 text-center text-white relative overflow-hidden border-b-8 border-wisdom-gold">
+            <h2 class="text-3xl font-bold mb-2">Desafío Final: Textos</h2>
+            <p class="text-blue-200 mb-6 max-w-2xl mx-auto">Aplica todo lo aprendido analizando textos reales. Localiza y clasifica las palabras marcadas.</p>
+            
+            <button id="btn-textos" disabled class="bg-gray-400 text-gray-200 font-bold py-4 px-8 rounded-xl shadow-lg cursor-not-allowed transition-all transform flex items-center justify-center gap-2 mx-auto">
+                🔒 Bloqueado (Completa el resto)
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="hidden-screen flex-1 w-full max-w-4xl mx-auto p-4 py-6 flex flex-col">
+        
+        <div class="flex justify-between items-center mb-6 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+            <button onclick="showDashboard()" class="text-wisdom-blue font-bold hover:underline flex items-center gap-1">
+                ← Volver al mapa
+            </button>
+            <h2 id="category-title" class="text-xl sm:text-2xl font-extrabold text-wisdom-blue uppercase tracking-wide">Categoría</h2>
+            <div class="bg-wisdom-gold text-white font-bold px-4 py-1 rounded-full shadow-inner text-lg">
+                <span id="progress-text">0</span> / <span id="progress-total">20</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden flex-1 border border-gray-100">
+            
+            <!-- Avatar & Teacher Feedback Section -->
+            <div class="bg-blue-50 w-full md:w-1/3 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-blue-100">
+                <img id="avatar-img" src="alegre.png" alt="Profesor" class="w-48 h-48 object-cover rounded-full border-4 border-wisdom-gold shadow-md bg-white mb-6">
+                
+                <div class="bubble w-full text-center shadow-sm">
+                    <p id="teacher-message" class="text-wisdom-blue font-semibold text-sm md:text-base leading-relaxed">
+                        ¡Hola! Lee bien la pregunta y elige la respuesta correcta. ¡Tú puedes!
+                    </p>
+                </div>
+                
+                <div id="action-buttons" class="hidden w-full mt-6 flex flex-col gap-2">
+                    <button id="btn-next" onclick="loadNextQuestion()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors">
+                        Siguiente Pregunta ➡
+                    </button>
+                    <button id="btn-retry" onclick="retryQuestion()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors hidden">
+                        ↻ Reintentar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question Section -->
+            <div class="w-full md:w-2/3 p-6 md:p-10 flex flex-col justify-center">
+                
+                <div id="text-context-container" class="hidden mb-6 bg-gray-50 border-l-4 border-wisdom-gold p-4 rounded text-gray-700 italic text-lg shadow-inner">
+                    <!-- Text for final challenge -->
+                </div>
+
+                <h3 id="question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-8 leading-snug">
+                    Cargando pregunta...
+                </h3>
+
+                <div id="options-container" class="flex flex-col gap-3">
+                    <!-- Dynamic options -->
+                </div>
+
+                <div id="completion-message" class="hidden text-center">
+                    <div class="text-6xl mb-4">🏆</div>
+                    <h3 class="text-3xl font-bold text-green-600 mb-2">¡Completado!</h3>
+                    <p class="text-gray-600 mb-6">Has superado todos los ejercicios de esta categoría.</p>
+                    <button onclick="showDashboard()" class="bg-wisdom-blue hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors">
+                        Volver al panel
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        // Assets
+        const AVATARS = {
+            explicando: 'consejo.png',
+            alegre: 'alegre.png',
+            estresado: 'estresado.png',
+            pensando: 'estresado.png'
+        };
+
+        const CATEGORIES = [
+            'Sustantivos', 'Determinantes', 'Adjetivos', 'Verbos', 'Adverbios', 
+            'Pronombres', 'Perífrasis', 'Preposiciones', 'Conjunciones', 'Interjecciones'
+        ];
+
+        // --- THE FULL QUESTION BANK (20 per category = 200 questions) ---
+        const questionBank = {
+            'Sustantivos': [
+                { q: "¿Qué tipo de sustantivo es 'Esperanza'?", options: ["Abstracto", "Concreto", "Colectivo", "Propio"], correct: 0, hint: "Los abstractos nombran ideas o sentimientos que no se pueden percibir con los cinco sentidos." },
+                { q: "Identifica el sustantivo colectivo:", options: ["Pinos", "Pinar", "Pineta", "Pinocho"], correct: 1, hint: "El colectivo nombra en singular a un conjunto de elementos." },
+                { q: "¿Cuál de estos sustantivos es epiceno?", options: ["Periodista", "Tigre", "Jirafa", "Estudiante"], correct: 2, hint: "Los epicenos tienen un solo género gramatical para ambos sexos (la jirafa macho / la jirafa hembra)." },
+                { q: "¿Qué género tiene 'águila'?", options: ["Femenino", "Masculino", "Neutro", "Ambiguo"], correct: 0, hint: "Aunque usa 'el' (el águila) para evitar cacofonía, es femenino (las águilas)." },
+                { q: "Marca el sustantivo incontable:", options: ["Botella", "Agua", "Vaso", "Gota"], correct: 1, hint: "No podemos decir 'un agua, dos aguas' para contar su sustancia, hay que medirla." },
+                { q: "¿Qué sustantivo es ambiguo en cuanto al género?", options: ["Mar", "Mapa", "Mano", "Madre"], correct: 0, hint: "Se puede decir 'el mar' o 'la mar' y el significado no cambia." },
+                { q: "En la oración 'El rubio es mi hermano', la palabra 'rubio' es:", options: ["Adjetivo", "Sustantivo", "Verbo", "Adverbio"], correct: 1, hint: "Está sustantivado por el artículo 'El'." },
+                { q: "Señala el sustantivo propio antropónimo:", options: ["Madrid", "Guadalquivir", "María", "Everest"], correct: 2, hint: "Los antropónimos son nombres propios de personas." },
+                { q: "El plural de 'lunes' es:", options: ["Los lunes", "Luneses", "Lunes", "Luneces"], correct: 0, hint: "Las palabras llanas acabadas en -s o -x no varían en plural, se marca con el artículo." },
+                { q: "¿Qué tipo de sustantivo es 'jauría'?", options: ["Común, concreto, colectivo", "Común, abstracto, individual", "Propio, concreto, colectivo", "Común, abstracto, colectivo"], correct: 0, hint: "Nombra en singular a un conjunto de perros." },
+                { q: "El sustantivo 'arte' es:", options: ["Femenino siempre", "Masculino siempre", "Ambiguo", "Epiceno"], correct: 2, hint: "Decimos 'el arte románico' pero 'las bellas artes'." },
+                { q: "El plural de 'menú' es:", options: ["Menús", "Menúes", "Menuses", "Ambas A y B son válidas"], correct: 0, hint: "Las palabras terminadas en -ú tónica suelen admitir -s y -es, pero 'menús' es la norma preferida y única correcta para este préstamo." },
+                { q: "Identifica el sustantivo derivado:", options: ["Sol", "Pan", "Panadero", "Luz"], correct: 2, hint: "Deriva del sustantivo primitivo 'pan'." },
+                { q: "La palabra 'dentista' según su género es:", options: ["Heterónimo", "Común en cuanto al género", "Epiceno", "Ambiguo"], correct: 1, hint: "El género lo marca el determinante: el dentista / la dentista." },
+                { q: "¿Cuál es un sustantivo patronímico?", options: ["Fernández", "Fernando", "Francia", "Francés"], correct: 0, hint: "Derivan del nombre del padre (Fernando -> Fernández)." },
+                { q: "El sustantivo 'hambre' lleva el artículo 'el' porque:", options: ["Es masculino", "Empieza por a/ha tónica", "Es ambiguo", "Es una excepción"], correct: 1, hint: "Es femenino, pero usa 'el' para evitar la cacofonía (el hambre atrasada)." },
+                { q: "Señala la opción con un sustantivo abstracto derivado de un verbo:", options: ["Belleza", "Blancura", "Lectura", "Juventud"], correct: 2, hint: "Proviene del verbo 'leer'." },
+                { q: "¿Cuál es el femenino de 'caballo'?", options: ["Caballa", "Yegua", "Caballera", "La caballo"], correct: 1, hint: "Es un sustantivo heterónimo (distinta raíz para masculino y femenino)." },
+                { q: "El sustantivo 'rebaño' es:", options: ["Incontable", "Abstracto", "Individual", "Colectivo"], correct: 3, hint: "Conjunto de ovejas." },
+                { q: "Señala el par primitivo / derivado correcto:", options: ["Mar / Río", "Libro / Librería", "Coche / Moto", "Flor / Rosa"], correct: 1, hint: "Librería deriva de la raíz de libro." }
+            ],
+            'Determinantes': [
+                { q: "En 'Ese coche es mío', la palabra 'Ese' es:", options: ["Pronombre", "Determinante demostrativo", "Adjetivo", "Determinante artículo"], correct: 1, hint: "Acompaña al sustantivo 'coche' indicando distancia media." },
+                { q: "¿Qué tipo de determinante es 'nuestro' en 'nuestro amigo'?", options: ["Posesivo", "Demostrativo", "Numeral", "Indefinido"], correct: 0, hint: "Indica pertenencia." },
+                { q: "Señala el determinante indefinido:", options: ["Tres", "Muchos", "Aquellos", "Mis"], correct: 1, hint: "Indica una cantidad imprecisa o no exacta." },
+                { q: "En la frase 'Me comí medio pastel', 'medio' es un determinante numeral...", options: ["Cardinal", "Ordinal", "Fraccionario", "Multiplicativo"], correct: 2, hint: "Indica una fracción o parte de la unidad." },
+                { q: "¿Qué artículo corresponde a 'agua' en singular?", options: ["La", "El", "Un", "Lo"], correct: 1, hint: "Como empieza por 'a' tónica, usa 'el', aunque es femenino." },
+                { q: "Identifica el determinante interrogativo en: '¿Qué libro lees?'", options: ["Libro", "Qué", "Lees", "No hay"], correct: 1, hint: "Acompaña al nombre 'libro' en la interrogación." },
+                { q: "En 'Tercer piso', 'Tercer' es un determinante:", options: ["Cardinal", "Ordinal", "Múltiplo", "Indefinido"], correct: 1, hint: "Indica orden en una sucesión." },
+                { q: "¿Hay un determinante en 'El parque está lejos'?", options: ["Sí, 'El'", "Sí, 'parque'", "Sí, 'lejos'", "No"], correct: 0, hint: "Es un artículo determinado." },
+                { q: "Señala el determinante demostrativo de lejanía:", options: ["Este", "Ese", "Aquel", "Mi"], correct: 2, hint: "Aquel/Aquella indican que el objeto está lejos." },
+                { q: "En 'Doble ración', 'doble' es numeral:", options: ["Cardinal", "Ordinal", "Multiplicativo", "Fraccionario"], correct: 2, hint: "Indica multiplicación (el doble)." },
+                { q: "¿Qué palabra actúa como determinante posesivo de un solo poseedor?", options: ["Nuestro", "Vuestra", "Mi", "Suyos"], correct: 2, hint: "'Mi' corresponde a la 1ª persona del singular (yo)." },
+                { q: "En 'Ambos lados', 'Ambos' es un determinante:", options: ["Numeral", "Indefinido", "Demostrativo", "Distributivo"], correct: 3, hint: "Distribuye la referencia entre los elementos (como 'sendos'). También se clasifica como indefinido en algunas gramáticas, pero es distributivo por excelencia." },
+                { q: "¿Cuál es el artículo contracto?", options: ["El", "Al", "Un", "Lo"], correct: 1, hint: "'Al' es la contracción de A + EL." },
+                { q: "En 'No tengo ningún problema', 'ningún' es determinante:", options: ["Negativo", "Indefinido", "Pronombre", "Numeral"], correct: 1, hint: "Indica inexistencia de forma imprecisa." },
+                { q: "¿Qué determinante acompaña a 'hacha'?", options: ["La", "El", "Una", "Toda"], correct: 1, hint: "Hacha empieza por 'ha' tónica, exige artículo masculino 'el'." },
+                { q: "En '¡Qué calor hace!', 'Qué' es:", options: ["Pronombre exclamativo", "Determinante exclamativo", "Adverbio", "Conjunción"], correct: 1, hint: "Acompaña al sustantivo 'calor'." },
+                { q: "Señala la frase con un determinante artículo indeterminado:", options: ["La mesa", "El sol", "Un perro", "Ese gato"], correct: 2, hint: "Un, una, unos, unas." },
+                { q: "En 'Veinte personas', 'veinte' es:", options: ["Ordinal", "Cardinal", "Indefinido", "Pronombre"], correct: 1, hint: "Indica cantidad exacta." },
+                { q: "¿Cuál NO es determinante posesivo?", options: ["Su", "Mi", "Mío (tras nombre)", "Yo"], correct: 3, hint: "'Yo' es un pronombre personal." },
+                { q: "En 'Cierta persona vino', 'Cierta' es determinante:", options: ["Indefinido", "Demostrativo", "Calificativo", "Numeral"], correct: 0, hint: "Es impreciso, no define quién." }
+            ],
+            'Adjetivos': [
+                { q: "En 'Gato negro', ¿en qué grado está el adjetivo?", options: ["Positivo", "Comparativo", "Superlativo", "Neutro"], correct: 0, hint: "Expresa la cualidad sin modificar la intensidad." },
+                { q: "¿Cuál es un adjetivo en grado superlativo absoluto?", options: ["Más alto que", "El más alto", "Altísimo", "Muy alto"], correct: 2, hint: "Usa el sufijo -ísimo." },
+                { q: "Identifica el adjetivo explicativo o epíteto:", options: ["Coche rojo", "Blanca nieve", "Mesa redonda", "Niño alto"], correct: 1, hint: "Aporta una cualidad inherente o que ya se presupone." },
+                { q: "¿Qué tipo de adjetivo es 'madrileño'?", options: ["Calificativo", "Relacional (gentilicio)", "Determinativo", "Posesivo"], correct: 1, hint: "Indica procedencia u origen." },
+                { q: "Señala el comparativo de superioridad:", options: ["Tan grande como", "Menos grande que", "Más grande que", "Grandísimo"], correct: 2, hint: "Usa la fórmula más + adj + que." },
+                { q: "En 'La clase es muy divertida', 'muy divertida' es grado:", options: ["Positivo", "Superlativo absoluto", "Superlativo relativo", "Comparativo"], correct: 1, hint: "Se forma con adverbio 'muy' + adjetivo." },
+                { q: "El superlativo de 'pobre' (forma culta) es:", options: ["Pobrísimo", "Paupérrimo", "Muy pobre", "Más pobre"], correct: 1, hint: "Es un superlativo irregular terminado en -érrimo." },
+                { q: "Señala el adjetivo especificativo:", options: ["Verde hierba", "Zapatos rotos", "Dulce azúcar", "Cálido fuego"], correct: 1, hint: "Restringe el significado, distingue a esos zapatos de otros." },
+                { q: "El grado comparativo sintético (irregular) de 'bueno' es:", options: ["Buenísimo", "Más bueno", "Mejor", "Óptimo"], correct: 2, hint: "No decimos 'más bueno que' (normalmente), decimos 'mejor que'." },
+                { q: "El grado superlativo de 'malo' (irregular) es:", options: ["Malísimo", "Peor", "Pésimo", "Muy malo"], correct: 2, hint: "Corresponde a la forma sintética o culta." },
+                { q: "En 'El chico rubio', el adjetivo concuerda en:", options: ["Género", "Número", "Género y número", "Persona"], correct: 2, hint: "Sustantivo y adjetivo siempre concuerdan en género y número." },
+                { q: "Señala el adjetivo de dos terminaciones:", options: ["Alegre", "Triste", "Inteligente", "Rojo"], correct: 3, hint: "Tiene forma para masculino (rojo) y femenino (roja)." },
+                { q: "¿Cuál es un adjetivo invariable en plural? (se queda igual)", options: ["Isósceles", "Feliz", "Grande", "Azul"], correct: 0, hint: "Decimos 'triángulo isósceles' y 'triángulos isósceles'." },
+                { q: "En 'Es el más rápido del equipo', el grado es:", options: ["Comparativo", "Superlativo relativo", "Superlativo absoluto", "Positivo"], correct: 1, hint: "Compara a uno con todo un grupo (el más... de...)." },
+                { q: "¿Cuál es el superlativo de 'célebre'?", options: ["Celebrísimo", "Celebérrimo", "Muy célebre", "Más célebre"], correct: 1, hint: "Irregular, usa la terminación -érrimo." },
+                { q: "Los adjetivos relacionales...", options: ["Admiten grado", "Suelen ir antes del nombre", "No admiten grado (no se es 'muy madrileño')", "Expresan sentimientos"], correct: 2, hint: "Clasifican al nombre, no graduables. No puedes ser 'muy solar' o 'poco europeo' en sentido estricto." },
+                { q: "En 'Dulce miel', el adjetivo va antepuesto por motivo:", options: ["Especificativo", "Explicativo / literario", "Es obligatorio", "Es un error"], correct: 1, hint: "Realza la cualidad propia de la miel." },
+                { q: "El comparativo de 'grande' es:", options: ["Grandísimo", "Máximo", "Mayor", "Muy grande"], correct: 2, hint: "Es la forma sintética." },
+                { q: "¿Qué adjetivo es invariable en género (una sola terminación)?", options: ["Feo", "Amable", "Bonito", "Alto"], correct: 1, hint: "Sirve para masculino y femenino (el chico amable / la chica amable)." },
+                { q: "Señala el superlativo absoluto sintético:", options: ["Muy listo", "El más listo", "Listísimo", "Más listo"], correct: 2, hint: "Sintético significa que se forma con un sufijo en la misma palabra." }
+            ],
+            'Verbos': [
+                { q: "En 'Yo cantaba', el tiempo verbal es:", options: ["Pretérito imperfecto", "Pretérito perfecto simple", "Condicional", "Presente"], correct: 0, hint: "Indica una acción pasada sin marcar su final." },
+                { q: "¿Cuál es el participio del verbo 'Escribir'?", options: ["Escribido", "Escrito", "Escribiendo", "Escribir"], correct: 1, hint: "Es un participio irregular." },
+                { q: "El modo que expresa acciones reales y objetivas es:", options: ["Subjuntivo", "Imperativo", "Indicativo", "Condicional"], correct: 2, hint: "El indicativo se usa para afirmar o negar hechos." },
+                { q: "Identifica la forma de Condicional Simple:", options: ["Comería", "Comerá", "Comía", "Habría comido"], correct: 0, hint: "Termina en -ría." },
+                { q: "El modo que usamos para dar órdenes es:", options: ["Indicativo", "Subjuntivo", "Imperativo", "Personal"], correct: 2, hint: "Solo tiene formas para 'tú' y 'vosotros' estrictamente." },
+                { q: "En 'Ojalá llueva', el verbo está en modo:", options: ["Indicativo", "Subjuntivo", "Imperativo", "Participio"], correct: 1, hint: "Expresa deseo o duda." },
+                { q: "¿Cuál es la 1ª conjugación?", options: ["Verbos en -er", "Verbos en -ir", "Verbos en -ar", "Verbos irregulares"], correct: 2, hint: "Ejemplo: Amar, Cantar, Bailar." },
+                { q: "El gerundio del verbo 'Leer' es:", options: ["Leído", "Leiendo", "Leyendo", "Leer"], correct: 2, hint: "Cuidado con la ortografía, la 'i' cambia a 'y'." },
+                { q: "Tiempo: Pretérito Pluscuamperfecto de Indicativo", options: ["Había cantado", "Hube cantado", "He cantado", "Habré cantado"], correct: 0, hint: "Se forma con el verbo haber en pretérito imperfecto (había)." },
+                { q: "¿Qué tiempo es 'cantaremos'?", options: ["Futuro simple", "Condicional", "Presente", "Pretérito imperfecto"], correct: 0, hint: "Acción venidera." },
+                { q: "Identifica el verbo irregular:", options: ["Amar", "Temer", "Ser", "Partir"], correct: 2, hint: "Su raíz cambia completamente (soy, eres, fui, seré)." },
+                { q: "Voz pasiva de 'El perro mordió al niño':", options: ["El niño mordió al perro", "El niño es mordido por el perro", "El niño fue mordido por el perro", "Al niño le mordió el perro"], correct: 2, hint: "Sujeto paciente + verbo ser en el mismo tiempo (fue) + participio (mordido)." },
+                { q: "¿Cuál no es una forma no personal?", options: ["Infinitivo", "Imperativo", "Gerundio", "Participio"], correct: 1, hint: "El imperativo sí tiene persona (tú, vosotros)." },
+                { q: "Desinencia que indica la persona y número se llama:", options: ["Lexema", "Morfema flexivo", "Raíz", "Prefijo"], correct: 1, hint: "Se añade al final del verbo para conjugarse." },
+                { q: "Verbo defectivo (no tiene todos los tiempos/personas):", options: ["Soler", "Cantar", "Comer", "Vivir"], correct: 0, hint: "Por ejemplo, no tiene futuro 'soleré' ni imperativo." },
+                { q: "Tiempo de 'Haya comido':", options: ["Pretérito perfecto compuesto de Subjuntivo", "Pretérito perfecto de Indicativo", "Futuro de Subjuntivo", "Condicional"], correct: 0, hint: "Verbo haber en presente de subjuntivo + participio." },
+                { q: "El verbo 'haber' en los tiempos compuestos funciona como:", options: ["Verbo principal", "Verbo auxiliar", "Preposición", "Nexo"], correct: 1, hint: "Ayuda a conjugar sin aportar su significado original." },
+                { q: "Participio irregular de 'Hacer':", options: ["Hacido", "Hecho", "Haciendo", "Hacer"], correct: 1, hint: "Nunca digas hacido." },
+                { q: "Identifica la forma en futuro compuesto:", options: ["Habría cantado", "Habrá cantado", "Haya cantado", "Había cantado"], correct: 1, hint: "Haber en futuro simple + participio." },
+                { q: "¿A qué persona corresponde 'cantabais'?", options: ["2ª singular", "1ª plural", "2ª plural", "3ª plural"], correct: 2, hint: "Vosotros cantabais." }
+            ],
+            'Adverbios': [
+                { q: "En 'Llegó tarde', la palabra 'tarde' es adverbio de:", options: ["Lugar", "Tiempo", "Modo", "Cantidad"], correct: 1, hint: "Responde a la pregunta ¿Cuándo?" },
+                { q: "¿Cuál de estos es un adverbio de lugar?", options: ["Aquí", "Muy", "Ayer", "Sí"], correct: 0, hint: "Responde a ¿Dónde?" },
+                { q: "Identifica el adverbio de modo:", options: ["Mucho", "Rápidamente", "Mañana", "Lejos"], correct: 1, hint: "Responde a ¿Cómo? Los terminados en -mente suelen serlo." },
+                { q: "En 'Comió bastante', 'bastante' es adverbio de:", options: ["Modo", "Cantidad", "Duda", "Afirmación"], correct: 1, hint: "Responde a ¿Cuánto?" },
+                { q: "Señala el adverbio de duda:", options: ["Ciertamente", "Nunca", "Quizás", "Ahora"], correct: 2, hint: "Expresa probabilidad o falta de certeza." },
+                { q: "¿Cuál es un adverbio de negación?", options: ["Jamás", "También", "Poco", "Así"], correct: 0, hint: "Niega la acción del verbo." },
+                { q: "En 'Estoy muy cansado', 'muy' modifica a:", options: ["Un verbo", "Un sustantivo", "Un adjetivo", "Un pronombre"], correct: 2, hint: "'Cansado' es el adjetivo que está siendo intensificado." },
+                { q: "¿Qué categoría son las palabras: sí, también, ciertamente?", options: ["Adverbios de afirmación", "Adjetivos", "Conjunciones", "Preposiciones"], correct: 0, hint: "Confirman o aseguran un hecho." },
+                { q: "Los adverbios son palabras:", options: ["Variables", "Invariables", "Flexivas", "Nominales"], correct: 1, hint: "No tienen género ni número (no decimos 'luegos' o 'aquías')." },
+                { q: "En 'Escribe peor que tú', 'peor' actúa como:", options: ["Adverbio de modo", "Adjetivo", "Pronombre", "Sustantivo"], correct: 0, hint: "Modifica al verbo 'Escribe'. ¿Cómo escribe?" },
+                { q: "Señala la locución adverbial:", options: ["De repente", "El coche", "Cantar bien", "Por lo tanto"], correct: 0, hint: "Grupo de palabras que funciona como un adverbio." },
+                { q: "Adverbio terminado en -mente derivado del adjetivo 'fácil':", options: ["Facilísimamente", "Fácilmente", "Facilmente (sin tilde)", "Fácilesmente"], correct: 1, hint: "Conservan la tilde del adjetivo original." },
+                { q: "En 'Vive cerca de aquí', hay:", options: ["1 adverbio", "2 adverbios", "3 adverbios", "No hay adverbios"], correct: 1, hint: "'cerca' y 'aquí'." },
+                { q: "¿Qué adverbio NO es de tiempo?", options: ["Hoy", "Luego", "Alrededor", "Pronto"], correct: 2, hint: "'Alrededor' es de lugar." },
+                { q: "En 'Habló claro', la palabra 'claro' funciona como:", options: ["Adjetivo", "Adverbio", "Sustantivo", "Verbo"], correct: 1, hint: "Aunque tiene forma de adjetivo, aquí significa 'claramente' y modifica al verbo." },
+                { q: "¿Cuál es adverbio de cantidad?", options: ["Apenas", "Siempre", "Nunca", "Allá"], correct: 0, hint: "Indica poca cantidad o escasamente." },
+                { q: "Un adverbio puede modificar a:", options: ["Un sustantivo", "Un verbo, adjetivo u otro adverbio", "Un artículo", "Una preposición"], correct: 1, hint: "Esa es su función principal en la oración." },
+                { q: "'A lo mejor' es una locución adverbial de:", options: ["Modo", "Tiempo", "Duda", "Cantidad"], correct: 2, hint: "Equivale a 'probablemente' o 'quizás'." },
+                { q: "¿Qué palabra es adverbio en 'Le gustó demasiado'?", options: ["Le", "Gustó", "Demasiado", "Ninguna"], correct: 2, hint: "Modifica al verbo indicando cuánto." },
+                { q: "El adverbio 'despacio' indica:", options: ["Tiempo", "Lugar", "Modo", "Cantidad"], correct: 2, hint: "Responde a la pregunta ¿cómo?" }
+            ],
+            'Pronombres': [
+                { q: "En 'Juan llegó, él estaba feliz', 'él' es:", options: ["Artículo", "Pronombre personal", "Determinante", "Adjetivo"], correct: 1, hint: "Sustituye a 'Juan'." },
+                { q: "¿Cuál es un pronombre personal átono?", options: ["Yo", "Tú", "Me", "Nosotros"], correct: 2, hint: "No tienen acento propio y van pegados al verbo (dáme-lo o me da)." },
+                { q: "En 'Este libro es mío', 'mío' es:", options: ["Determinante posesivo", "Pronombre posesivo", "Adjetivo", "Adverbio"], correct: 1, hint: "No acompaña al sustantivo, va aislado (atributo/sustituto)." },
+                { q: "Señala el pronombre demostrativo:", options: ["Este niño", "Quiero eso", "Mi casa", "Algún día"], correct: 1, hint: "Sustituye al objeto ('eso'), no acompaña a un nombre." },
+                { q: "En '¿Quién vino?', 'Quién' es:", options: ["Pronombre interrogativo", "Determinante interrogativo", "Pronombre relativo", "Conjunción"], correct: 0, hint: "Sustituye a la persona por la que se pregunta." },
+                { q: "Identifica el pronombre relativo:", options: ["Qué", "Quien", "Él", "Aquel"], correct: 1, hint: "Sirve para enlazar refiriéndose a un sustantivo anterior (el chico de quien te hablé)." },
+                { q: "En 'Alguien llamó a la puerta', 'Alguien' es:", options: ["Pronombre indefinido", "Determinante", "Sustantivo", "Adverbio"], correct: 0, hint: "Sustituye a una persona desconocida." },
+                { q: "Los pronombres personales tónicos de 2ª persona singular son:", options: ["Yo, me, mi", "Tú, te, ti, contigo", "Él, lo, le", "Nosotros"], correct: 1, hint: "Tú (sujeto) o ti/contigo (con preposición)." },
+                { q: "En 'Te lo dije', las palabras 'Te' y 'lo' son:", options: ["Artículos", "Determinantes", "Pronombres personales", "Adverbios"], correct: 2, hint: "Sustituyen a la persona y a la cosa dicha." },
+                { q: "¿Cuál pronombre sirve para preguntar por cantidad?", options: ["Cuánto", "Qué", "Cuál", "Quién"], correct: 0, hint: "Ejemplo: ¿Cuánto quieres?" },
+                { q: "En 'Ese es el tuyo', 'tuyo' funciona como:", options: ["Determinante", "Pronombre posesivo", "Adjetivo", "Sustantivo"], correct: 1, hint: "Sustituye a la cosa poseída." },
+                { q: "El pronombre personal 'se' es de:", options: ["1ª persona", "2ª persona", "3ª persona", "No tiene persona"], correct: 2, hint: "Acompaña a él/ella/ellos/ellas (Se peinó)." },
+                { q: "Identifica el pronombre numeral:", options: ["Tres mesas", "Quiero cuatro", "Doble ración", "Primer premio"], correct: 1, hint: "No acompaña al sustantivo, lo sustituye." },
+                { q: "En 'Me compré zapatos', el pronombre es:", options: ["Me", "Compré", "Zapatos", "No hay"], correct: 0, hint: "Pronombre personal átono." },
+                { q: "Los pronombres demostrativos neutros (esto, eso, aquello) nunca son:", options: ["Pronombres", "Sustantivos", "Determinantes", "Sujetos"], correct: 2, hint: "Nunca acompañan a un sustantivo, siempre van solos." },
+                { q: "'Leísmo' es el uso incorrecto del pronombre 'le' en lugar de:", options: ["Lo/La", "Se", "Me", "Les"], correct: 0, hint: "Para Complemento Directo se debe usar Lo/La." },
+                { q: "En 'Nada me asusta', 'Nada' es:", options: ["Adverbio", "Pronombre indefinido", "Determinante", "Sustantivo"], correct: 1, hint: "Sustituye a la cosa que no existe." },
+                { q: "El pronombre 'consigo' es de:", options: ["1ª persona", "2ª persona", "3ª persona", "Plural"], correct: 2, hint: "Habla consigo mismo (él/ella)." },
+                { q: "¿Qué frase tiene un pronombre enclítico (pegado al verbo)?", options: ["Me lo dio", "Dímelo", "Se fue", "Te vi"], correct: 1, hint: "Di-me-lo (va unido al final del verbo)." },
+                { q: "¿Cuál es el relativo en 'El perro que ladra no muerde'?", options: ["El", "Perro", "Que", "No"], correct: 2, hint: "Sustituye a 'perro' en la segunda oración." }
+            ],
+            'Perífrasis': [
+                { q: "¿Qué estructura tiene una perífrasis verbal?", options: ["Verbo principal + Nexo + Auxiliar", "Verbo Auxiliar + (Nexo) + Verbo en forma no personal", "Dos verbos en indicativo", "Sustantivo + Verbo"], correct: 1, hint: "El auxiliar va conjugado y pierde su significado." },
+                { q: "En 'Tengo que estudiar', hay una perífrasis de:", options: ["Obligación", "Probabilidad", "Inicio", "Duración"], correct: 0, hint: "Expresa un deber." },
+                { q: "'Debe de ser la una', expresa:", options: ["Obligación", "Duda o probabilidad", "Acción terminada", "Reiteración"], correct: 1, hint: "Deber DE + infinitivo indica probabilidad." },
+                { q: "En 'Me eché a reír', la perífrasis es:", options: ["Modal de obligación", "Aspectual incoativa (inicio)", "Aspectual durativa", "Terminativa"], correct: 1, hint: "Indica que la acción acaba de empezar." },
+                { q: "Identifica la perífrasis durativa:", options: ["Voy a salir", "Sigo trabajando", "Tengo que ir", "Dejó de llover"], correct: 1, hint: "Estar/Seguir + Gerundio. Acción en desarrollo." },
+                { q: "¿En qué forma no personal está el verbo principal en 'Acabo de llegar'?", options: ["Gerundio", "Participio", "Infinitivo", "Presente"], correct: 2, hint: "Llegar termina en -ar." },
+                { q: "En 'Lleva leídas tres páginas', la perífrasis es:", options: ["Con gerundio", "Con infinitivo", "Con participio (terminativa)", "No hay perífrasis"], correct: 2, hint: "Llevar + participio." },
+                { q: "¿Cuál NO es una perífrasis?", options: ["Quiero comer", "Tengo que comer", "Voy a comer", "Debe comer"], correct: 0, hint: "En 'Quiero comer' el verbo querer mantiene todo su significado, son dos oraciones." },
+                { q: "La perífrasis 'Soler + infinitivo' (Suele venir) es:", options: ["Frecuentativa", "Obligación", "Incoativa", "Durativa"], correct: 0, hint: "Indica acción que se repite por costumbre." },
+                { q: "'Va a llover' es una perífrasis:", options: ["Ingresiva (a punto de)", "Obligación", "Durativa", "Terminativa"], correct: 0, hint: "Indica que algo sucederá inminentemente." },
+                { q: "¿Cuál de estos nexos suele unir los verbos en una perífrasis?", options: ["Que, a, de", "Y, o, pero", "Muy, mucho", "El, la, los"], correct: 0, hint: "Ej: Tener QUE, Ir A, Terminar DE." },
+                { q: "En 'Rompió a llorar', el verbo auxiliar es:", options: ["Rompió", "A", "Llorar", "Lloró"], correct: 0, hint: "Es el verbo que está conjugado." },
+                { q: "Perífrasis de obligación con 'Hay':", options: ["Hay comida", "Hay que salir", "Hay mucha gente", "No hay nada"], correct: 1, hint: "Hay que + infinitivo." },
+                { q: "Señala la perífrasis terminativa:", options: ["Voy a jugar", "Sigo jugando", "Dejé de jugar", "Tengo que jugar"], correct: 2, hint: "Indica el final de la acción." },
+                { q: "En 'Estaba durmiendo', el verbo 'durmiendo' es:", options: ["El auxiliar", "El nexo", "El verbo principal (gerundio)", "El sujeto"], correct: 2, hint: "Aporta el significado real de la acción." },
+                { q: "La perífrasis 'Viene costando 10 euros' es:", options: ["Aproximación/Probabilidad", "Obligación", "Inicio", "Fin"], correct: 0, hint: "Significa 'cuesta más o menos'." },
+                { q: "¿Hay perífrasis en 'Voy a comprar el pan'?", options: ["Sí, ir a + infinitivo", "No, es verbo de movimiento", "Ambas interpretaciones son posibles según el contexto", "Es una locución"], correct: 2, hint: "Si vas físicamente, no es perífrasis. Si significa futuro ('voy a aprobar'), sí lo es." },
+                { q: "En 'Echarse a dormir', la clasificación es:", options: ["Aspectual incoativa", "Modal de probabilidad", "Terminativa", "Obligación"], correct: 0, hint: "Inicio de la acción." },
+                { q: "'Andan diciendo rumores' usa una perífrasis con:", options: ["Infinitivo", "Gerundio", "Participio", "No hay"], correct: 1, hint: "Andar + gerundio (acción en desarrollo/reiterada)." },
+                { q: "¿Qué verbo pierde su significado en la perífrasis?", options: ["El principal", "El no personal", "El auxiliar", "Ninguno"], correct: 2, hint: "Se vacía de significado para aportar solo gramática (tiempo, modo)." }
+            ],
+            'Preposiciones': [
+                { q: "¿Cuál de estas NO es una preposición?", options: ["Cabe", "Con", "Mas", "Hacia"], correct: 2, hint: "'Mas' (sin tilde) es conjunción." },
+                { q: "En 'Voy de Madrid a Barcelona', las preposiciones son:", options: ["Voy, a", "de, a", "Madrid, Barcelona", "Voy, de"], correct: 1, hint: "Unen palabras indicando origen y destino." },
+                { q: "¿Qué preposición está en desuso y significa 'junto a'?", options: ["So", "Cabe", "Bajo", "Ante"], correct: 1, hint: "Ya solo se usa en literatura muy antigua." },
+                { q: "La preposición 'según' tiene una particularidad:", options: ["Es átona", "Puede llevar verbo (según dicen)", "Es conjunción también", "B y C son correctas"], correct: 3, hint: "Puede funcionar casi como conjunción y es tónica." },
+                { q: "¿Cuál es la lista oficial que añadieron hace poco?", options: ["Durante, mediante, versus, vía", "Salvo, excepto, incluso", "A, ante, bajo", "Que, si, como"], correct: 0, hint: "La RAE las incorporó a la lista clásica." },
+                { q: "Señala la locución preposicional:", options: ["A causa de", "Desde", "En", "Contra"], correct: 0, hint: "Es un grupo de palabras que funciona como una sola preposición." },
+                { q: "En 'Libro para leer', 'para' indica:", options: ["Origen", "Finalidad", "Lugar", "Tiempo"], correct: 1, hint: "Indica el propósito." },
+                { q: "Las preposiciones son palabras:", options: ["Variables", "Invariables", "Flexivas", "Tónicas (la mayoría)"], correct: 1, hint: "No tienen ni género ni número." },
+                { q: "¿Qué preposición significa 'bajo' o 'debajo de' y está anticuada?", options: ["Cabe", "So", "Tras", "Ante"], correct: 1, hint: "Ejemplo: 'So pena de muerte'." },
+                { q: "En 'Café con leche', la preposición indica:", options: ["Compañía / Unión", "Instrumento", "Tiempo", "Causa"], correct: 0, hint: "Indica suma de elementos." },
+                { q: "¿Cuál NO es una preposición oficial de la RAE?", options: ["Durante", "Excepto", "Mediante", "Vía"], correct: 1, hint: "Excepto se considera a veces conjunción o preposición impropia, pero no está en la lista de las 23 oficiales." },
+                { q: "En 'Luchó por su país', 'por' indica:", options: ["Causa / Motivo", "Lugar", "Medio", "Tiempo"], correct: 0, hint: "Es la razón por la que luchó." },
+                { q: "Completa la lista: a, ante, bajo, cabe, con, ...", options: ["de, desde", "contra, de, desde", "cuando, donde", "hacia, hasta"], correct: 1, hint: "Sigue el orden alfabético." },
+                { q: "¿Cuál de estas palabras es preposición?", options: ["Allí", "Desde", "Siempre", "Ayer"], correct: 1, hint: "Indica el punto de origen de algo." },
+                { q: "La preposición 'tras' equivale a:", options: ["Antes de", "Después de / Detrás de", "Junto a", "Sobre"], correct: 1, hint: "Ej: 'Tras la puerta' o 'Tras el invierno'." },
+                { q: "En 'Pasó por Madrid', 'por' indica:", options: ["Tiempo aproximado", "Causa", "Lugar de tránsito", "Instrumento"], correct: 2, hint: "Lugar por donde se pasa." },
+                { q: "Señala la locución preposicional:", options: ["Sin embargo", "A través de", "O sea", "Es decir"], correct: 1, hint: "Funciona como 'por'." },
+                { q: "En 'Voy hacia el sur', indica:", options: ["Destino final", "Dirección", "Compañía", "Medio"], correct: 1, hint: "Marca el rumbo, no necesariamente la llegada ('hasta')." },
+                { q: "'Contra' es una preposición que indica:", options: ["Oposición", "Unión", "Dirección", "Causa"], correct: 0, hint: "Chocar o ir opuesto a algo." },
+                { q: "¿Cuántas preposiciones hay en la lista actual de la RAE?", options: ["19", "21", "23", "25"], correct: 2, hint: "Con la incorporación de durante, mediante, versus, vía." }
+            ],
+            'Conjunciones': [
+                { q: "En 'Juan y María', 'y' es una conjunción:", options: ["Disyuntiva", "Copulativa", "Adversativa", "Causal"], correct: 1, hint: "Sirve para sumar o añadir elementos." },
+                { q: "¿Cuál es una conjunción disyuntiva?", options: ["O / U", "Y / E", "Pero", "Porque"], correct: 0, hint: "Indica elección o alternativa entre dos cosas." },
+                { q: "Señala la conjunción adversativa:", options: ["Pero", "Que", "Ni", "Aunque (subordinante)"], correct: 0, hint: "Expresa oposición o contrariedad ('pero', 'mas', 'sino')." },
+                { q: "En 'No quiero té sino café', 'sino' es:", options: ["Conjunción adversativa", "Sustantivo", "Adverbio", "Preposición"], correct: 0, hint: "Opone una idea afirmativa a una negativa previa." },
+                { q: "¿Qué conjunción se usa en vez de 'y' antes de palabras que empiezan por 'i' o 'hi'?", options: ["O", "E", "U", "Ni"], correct: 1, hint: "Para evitar cacofonía (Padre e hijo)." },
+                { q: "Las conjunciones coordinantes:", options: ["Unen elementos del mismo nivel", "Hacen depender una de otra", "Son variables", "No existen"], correct: 0, hint: "Unen palabras u oraciones sin subordinarlas." },
+                { q: "Identifica la conjunción causal:", options: ["Porque", "Aunque", "Si", "Pero"], correct: 0, hint: "Indica la causa o motivo de algo." },
+                { q: "En 'Si llueve, no voy', 'Si' es conjunción:", options: ["Causal", "Condicional", "Concesiva", "Copulativa"], correct: 1, hint: "Expresa una condición necesaria." },
+                { q: "Señala la conjunción concesiva:", options: ["Aunque", "Para que", "O", "Ni"], correct: 0, hint: "Expresa un obstáculo que no impide la acción." },
+                { q: "¿Cuál es una locución conjuntiva?", options: ["Sin embargo", "A, ante", "El coche", "Rápidamente"], correct: 0, hint: "Grupo de palabras que funciona como conjunción adversativa." },
+                { q: "En 'Estudió mucho, por lo tanto aprobó', indica:", options: ["Consecuencia (Consecutiva)", "Causa", "Condición", "Tiempo"], correct: 0, hint: "Es el resultado de la acción." },
+                { q: "¿Cuál NO es conjunción copulativa?", options: ["Y", "E", "Ni", "O"], correct: 3, hint: "'O' es disyuntiva." },
+                { q: "'Mas' (sin tilde) equivale a:", options: ["Más (cantidad)", "Pero (adversativa)", "Sino", "Y"], correct: 1, hint: "Es una conjunción adversativa literaria." },
+                { q: "Las conjunciones son palabras:", options: ["Con género", "Invariables", "Con plural", "Verbales"], correct: 1, hint: "No cambian nunca." },
+                { q: "En 'Vino para que lo vieras', 'para que' es:", options: ["Conjunción final", "Causal", "Copulativa", "Preposición"], correct: 0, hint: "Indica la finalidad o propósito." },
+                { q: "Conjunción temporal:", options: ["Cuando", "Donde", "Como", "Quien"], correct: 0, hint: "Indica en qué momento ocurre (funcionando como nexo)." },
+                { q: "En 'No ríe ni llora', 'ni' es:", options: ["Copulativa (negativa)", "Disyuntiva", "Adversativa", "Adverbio"], correct: 0, hint: "Suma elementos negados." },
+                { q: "¿Cuál es la conjunción completiva más común?", options: ["Que", "Porque", "Si", "O"], correct: 0, hint: "Ej: Quiero QUE vengas." },
+                { q: "'O bien' es un nexo:", options: ["Disyuntivo", "Copulativo", "Adversativo", "Explicativo"], correct: 0, hint: "Presenta una opción." },
+                { q: "En 'Es decir', tenemos una locución conjuntiva:", options: ["Explicativa", "Causal", "Adversativa", "Final"], correct: 0, hint: "Aclara o explica lo dicho anteriormente." }
+            ],
+            'Interjecciones': [
+                { q: "En '¡Ay!', la palabra es una interjección:", options: ["Propia", "Impropia", "Derivada", "Verbal"], correct: 0, hint: "Solo existe como interjección." },
+                { q: "¿Qué expresan las interjecciones?", options: ["Acciones", "Sentimientos, impresiones o llamadas", "Cualidades", "Nombres"], correct: 1, hint: "Equivalen casi a una oración completa exclamativa." },
+                { q: "Identifica la interjección impropia:", options: ["¡Oh!", "¡Uy!", "¡Ojo!", "¡Bah!"], correct: 2, hint: "Es un sustantivo usado como exclamación." },
+                { q: "¿Cuál de estas es una interjección propia?", options: ["¡Cuidado!", "¡Vaya!", "¡Hola!", "¡Bravo!"], correct: 2, hint: "Hola no viene de un verbo ni sustantivo previo." },
+                { q: "En '¡Bravo!', se usa una palabra de la categoría:", options: ["Adjetivo (impropia)", "Verbo", "Adverbio", "Conjunción"], correct: 0, hint: "Bravo es un adjetivo usado como interjección." },
+                { q: "¿Qué signo de puntuación acompaña siempre a las interjecciones?", options: ["Comillas", "Signos de exclamación ¡!", "Puntos suspensivos", "Paréntesis"], correct: 1, hint: "Muestran la entonación fuerte." },
+                { q: "La interjección '¡Bah!' expresa:", options: ["Sorpresa", "Desdén o incredulidad", "Alegría", "Dolor"], correct: 1, hint: "Significa que no te importa o no lo crees." },
+                { q: "¿Cuál es una locución interjectiva?", options: ["¡Dios mío!", "¡Ay!", "¡Ojalá!", "¡Zas!"], correct: 0, hint: "Un grupo de palabras que funciona como interjección." },
+                { q: "En '¡Venga!', la interjección impropia viene de un:", options: ["Sustantivo", "Verbo", "Adjetivo", "Adverbio"], correct: 1, hint: "Viene del verbo venir." },
+                { q: "Las interjecciones son invariables porque:", options: ["No tienen género ni número", "No se pueden escribir", "Solo las usan los niños", "Tienen conjugación"], correct: 0, hint: "Son palabras fijas." },
+                { q: "'¡Ojalá!' es originalmente:", options: ["Una interjección de deseo", "Un verbo", "Un sustantivo", "Un adjetivo"], correct: 0, hint: "Proviene del árabe 'Si Dios quiere', expresa deseo fuertemente." },
+                { q: "Identifica la onomatopeya usada como interjección:", options: ["¡Pum!", "¡Hombre!", "¡Anda!", "¡Claro!"], correct: 0, hint: "Imita un sonido." },
+                { q: "En '¡Cielo santo!', tenemos:", options: ["Interjección propia", "Locución interjectiva", "Adverbio", "Preposición"], correct: 1, hint: "Más de una palabra formando la exclamación." },
+                { q: "¿Qué interjección expresa dolor súbito?", options: ["¡Uy!", "¡Ay!", "¡Eh!", "¡Ea!"], correct: 1, hint: "Es la más clásica para el dolor físico." },
+                { q: "La interjección '¡Eh!' se usa principalmente para:", options: ["Saludar", "Llamar la atención / advertir", "Despedir", "Llorar"], correct: 1, hint: "¡Eh, tú! ¡Cuidado!" },
+                { q: "En '¡Hombre, cuánto tiempo!', 'Hombre' es interjección:", options: ["Propia", "Impropia (Sustantivo)", "Locución", "Onomatopeya"], correct: 1, hint: "Es un sustantivo." },
+                { q: "¿Cuál NO es interjección?", options: ["¡Zas!", "¡Uf!", "¡Qué!", "¡Hala!"], correct: 2, hint: "Qué es pronombre/determinante exclamativo, no interjección por sí solo (necesita nombre/verbo general)." },
+                { q: "'¡Guau!' es una interjección que expresa:", options: ["Asombro / Admiración", "Tristeza", "Asco", "Sueño"], correct: 0, hint: "Se usa al ver algo impresionante." },
+                { q: "En '¡Puaf, qué asco!', 'Puaf' o 'Puaj' expresa:", options: ["Alegría", "Repulsión", "Susto", "Alivio"], correct: 1, hint: "Reacción a algo desagradable." },
+                { q: "La diferencia entre propia e impropia es:", options: ["La propia es educada", "La propia solo es exclamación, la impropia tiene otra categoría original", "La impropia está mal escrita", "No hay diferencia"], correct: 1, hint: "Propias: uy, ay. Impropias: ¡ojo! (sustantivo)." }
+            ]
+        };
+
+        // --- THE TEXTS BANK (For the final challenge) ---
+        const textsBank = [
+            {
+                text: "Ayer vi a <u>tu</u> <u>hermano</u> <u>pequeño</u> corriendo <u>rápidamente</u> <u>por</u> el parque.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Determinante, Sustantivo, Adjetivo, Adverbio, Preposición",
+                    "Pronombre, Sustantivo, Adverbio, Adjetivo, Conjunción",
+                    "Determinante, Verbo, Adjetivo, Adverbio, Preposición",
+                    "Adjetivo, Sustantivo, Adjetivo, Pronombre, Conjunción"
+                ],
+                correct: 0,
+                hint: "Tu (det posesivo), hermano (sust), pequeño (adj), rápidamente (adv modo), por (prep)."
+            },
+            {
+                text: "<u>Nosotros</u> <u>habíamos estudiado</u> <u>mucho</u> <u>para</u> el examen <u>final</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Sustantivo, Verbo, Adjetivo, Conjunción, Adjetivo",
+                    "Pronombre, Verbo, Adverbio, Preposición, Adjetivo",
+                    "Pronombre, Perífrasis, Determinante, Preposición, Sustantivo",
+                    "Determinante, Verbo, Adverbio, Conjunción, Adjetivo"
+                ],
+                correct: 1,
+                hint: "Nosotros (pron personal), habíamos estudiado (verbo pluscuamperfecto), mucho (adv cantidad), para (prep), final (adjetivo)."
+            },
+            {
+                text: "<u>¡Uy!</u>, <u>se</u> me ha caído <u>el</u> vaso <u>de</u> cristal <u>roto</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Interjección, Pronombre, Determinante, Preposición, Adjetivo",
+                    "Adverbio, Determinante, Artículo, Conjunción, Verbo",
+                    "Interjección, Conjunción, Determinante, Preposición, Sustantivo",
+                    "Onomatopeya, Pronombre, Adjetivo, Preposición, Adjetivo"
+                ],
+                correct: 0,
+                hint: "Uy (interjección), se (pron personal), el (det artículo), de (prep), roto (adjetivo)."
+            },
+            {
+                text: "<u>Ese</u> perro <u>tiene que comer</u> <u>bastante</u> <u>y</u> dormir <u>bien</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Determinante, Perífrasis, Adverbio, Conjunción, Adverbio",
+                    "Pronombre, Verbo, Adjetivo, Preposición, Adverbio",
+                    "Determinante, Verbo, Pronombre, Conjunción, Adjetivo",
+                    "Pronombre, Perífrasis, Adverbio, Preposición, Sustantivo"
+                ],
+                correct: 0,
+                hint: "Ese (det demostrativo), tiene que comer (perífrasis obligación), bastante (adv cantidad), y (conj copulativa), bien (adv modo)."
+            },
+            {
+                text: "<u>Aunque</u> <u>estaba</u> cansado, <u>él</u> terminó <u>su</u> tarea <u>pronto</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Preposición, Verbo, Sustantivo, Pronombre, Adjetivo",
+                    "Conjunción, Verbo, Pronombre, Determinante, Adverbio",
+                    "Adverbio, Verbo, Determinante, Determinante, Adverbio",
+                    "Conjunción, Adjetivo, Pronombre, Sustantivo, Adjetivo"
+                ],
+                correct: 1,
+                hint: "Aunque (conj concesiva), estaba (verbo), él (pron personal), su (det posesivo), pronto (adv tiempo)."
+            },
+            {
+                text: "<u>Cerca</u> <u>de</u> mi casa <u>hay</u> <u>un</u> bosque <u>frondoso</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Adverbio, Preposición, Verbo, Determinante, Adjetivo",
+                    "Sustantivo, Conjunción, Verbo, Pronombre, Adjetivo",
+                    "Adjetivo, Preposición, Sustantivo, Determinante, Adverbio",
+                    "Adverbio, Conjunción, Verbo, Determinante, Sustantivo"
+                ],
+                correct: 0,
+                hint: "Cerca (adv lugar), de (prep), hay (verbo), un (det artículo indeterminado), frondoso (adjetivo)."
+            },
+            {
+                text: "<u>¡Bravo!</u>, <u>los</u> músicos <u>tocaron</u> <u>maravillosamente</u> <u>hoy</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Interjección, Determinante, Verbo, Adverbio, Adverbio",
+                    "Adjetivo, Pronombre, Verbo, Adjetivo, Sustantivo",
+                    "Interjección, Pronombre, Verbo, Adverbio, Adjetivo",
+                    "Verbo, Determinante, Verbo, Adjetivo, Adverbio"
+                ],
+                correct: 0,
+                hint: "Bravo (interjección impropia), los (det artículo), tocaron (verbo), maravillosamente (adv modo), hoy (adv tiempo)."
+            },
+            {
+                text: "<u>Quiero</u> <u>que</u> <u>me</u> compres <u>tres</u> manzanas <u>verdes</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Verbo, Conjunción, Pronombre, Determinante, Adjetivo",
+                    "Verbo, Preposición, Pronombre, Sustantivo, Adverbio",
+                    "Sustantivo, Conjunción, Determinante, Numeral, Adjetivo",
+                    "Verbo, Pronombre, Determinante, Adjetivo, Sustantivo"
+                ],
+                correct: 0,
+                hint: "Quiero (verbo), que (conjunción completiva), me (pron personal), tres (det numeral), verdes (adjetivo)."
+            },
+            {
+                text: "<u>No</u> <u>voy a salir</u> <u>sino</u> que <u>me</u> quedaré <u>aquí</u>.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Adverbio, Perífrasis, Conjunción, Pronombre, Adverbio",
+                    "Preposición, Verbo, Preposición, Determinante, Sustantivo",
+                    "Adverbio, Verbo, Conjunción, Pronombre, Adjetivo",
+                    "Conjunción, Perífrasis, Adverbio, Sustantivo, Adverbio"
+                ],
+                correct: 0,
+                hint: "No (adv negación), voy a salir (perífrasis), sino (conj adversativa), me (pron personal), aquí (adv lugar)."
+            },
+            {
+                text: "<u>Aquel</u> chico <u>alto</u> <u>es</u> <u>el</u> amigo <u>de</u> Juan.",
+                q: "Clasifica en orden las palabras subrayadas:",
+                options: [
+                    "Pronombre, Adjetivo, Verbo, Determinante, Conjunción",
+                    "Determinante, Adjetivo, Verbo, Determinante, Preposición",
+                    "Determinante, Sustantivo, Verbo, Pronombre, Preposición",
+                    "Pronombre, Sustantivo, Verbo, Pronombre, Conjunción"
+                ],
+                correct: 1,
+                hint: "Aquel (det demostrativo), alto (adjetivo), es (verbo), el (det artículo), de (prep)."
+            }
+        ];
+
+        // System State
+        let currentUser = '';
+        let userData = { progress: {} };
+        let activeCategory = '';
+        let currentQuestionObj = null;
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('wisdom_lastUser');
+            if(savedUser) {
+                document.getElementById('player-name').value = savedUser;
+            }
+        });
+
+        function login() {
+            const name = document.getElementById('player-name').value.trim();
+            if(!name) return;
+            
+            currentUser = name;
+            localStorage.setItem('wisdom_lastUser', name);
+            
+            const storageKey = 'wisdom_data_' + currentUser.toLowerCase();
+            const savedData = localStorage.getItem(storageKey);
+            
+            if(savedData) {
+                userData = JSON.parse(savedData);
+            } else {
+                userData = { progress: {} };
+                CATEGORIES.forEach(cat => userData.progress[cat] = 0);
+                userData.progress['Textos'] = 0;
+            }
+
+            // Ensure schema integrity if new categories were added
+            CATEGORIES.forEach(cat => { if(userData.progress[cat] === undefined) userData.progress[cat] = 0; });
+            if(userData.progress['Textos'] === undefined) userData.progress['Textos'] = 0;
+            saveData();
+
+            document.getElementById('welcome-name').innerText = `Hola, ${currentUser}`;
+            showScreen('dashboard-screen');
+            renderDashboard();
+        }
+
+        function logout() {
+            currentUser = '';
+            showScreen('login-screen');
+        }
+
+        function saveData() {
+            const storageKey = 'wisdom_data_' + currentUser.toLowerCase();
+            localStorage.setItem(storageKey, JSON.stringify(userData));
+        }
+
+        function showScreen(screenId) {
+            ['login-screen', 'dashboard-screen', 'game-screen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden-screen');
+            });
+            document.getElementById(screenId).classList.remove('hidden-screen');
+        }
+
+        function showDashboard() {
+            saveData();
+            renderDashboard();
+            showScreen('dashboard-screen');
+        }
+
+        function renderDashboard() {
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+            
+            let allCompleted = true;
+
+            CATEGORIES.forEach(cat => {
+                const score = userData.progress[cat] || 0;
+                if(score < 20) allCompleted = false;
+                const isDone = score >= 20;
+
+                grid.innerHTML += `
+                    <button onclick="startGame('${cat}')" class="bg-white p-5 rounded-xl shadow border-b-4 ${isDone ? 'border-green-500 hover:bg-green-50' : 'border-blue-400 hover:bg-blue-50'} transition transform hover:-translate-y-1 text-left flex flex-col justify-between">
+                        <div>
+                            <span class="font-bold text-gray-800 block mb-2 text-lg">${cat}</span>
+                            <div class="w-full bg-gray-200 rounded-full h-3 mb-1 overflow-hidden">
+                                <div class="bg-${isDone ? 'green' : 'blue'}-600 h-full transition-all duration-500" style="width: ${(score/20)*100}%"></div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-bold ${isDone ? 'text-green-600' : 'text-gray-500'} self-end mt-2">${score}/20</span>
+                    </button>
+                `;
+            });
+
+            const btnTextos = document.getElementById('btn-textos');
+            const scoreTextos = userData.progress['Textos'] || 0;
+            
+            if (allCompleted) {
+                btnTextos.disabled = false;
+                btnTextos.className = "bg-wisdom-gold hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-2 mx-auto";
+                btnTextos.innerHTML = `🚀 Iniciar Análisis de Textos (${scoreTextos}/10)`;
+                btnTextos.onclick = () => startGame('Textos');
+            } else {
+                btnTextos.disabled = true;
+                btnTextos.className = "bg-blue-800 text-blue-400 font-bold py-4 px-8 rounded-xl shadow-inner cursor-not-allowed mx-auto border-2 border-blue-700";
+                btnTextos.innerHTML = `🔒 Bloqueado (Completa el resto de categorías)`;
+            }
+        }
+
+        function startGame(category) {
+            activeCategory = category;
+            document.getElementById('category-title').innerText = category;
+            
+            const max = category === 'Textos' ? 10 : 20;
+            document.getElementById('progress-total').innerText = max;
+            
+            showScreen('game-screen');
+            loadNextQuestion();
+        }
+
+        function updateTeacher(avatarKey, message, msgColorClass = 'text-wisdom-blue') {
+            document.getElementById('avatar-img').src = AVATARS[avatarKey];
+            const msgEl = document.getElementById('teacher-message');
+            msgEl.innerHTML = message;
+            msgEl.className = `font-semibold text-sm md:text-base leading-relaxed ${msgColorClass}`;
+        }
+
+        function loadNextQuestion() {
+            // UI Reset
+            document.getElementById('action-buttons').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('btn-retry').classList.add('hidden');
+            document.getElementById('options-container').innerHTML = '';
+            document.getElementById('completion-message').classList.add('hidden');
+            document.getElementById('text-context-container').classList.add('hidden');
+            document.getElementById('question-text').classList.remove('hidden');
+
+            const score = userData.progress[activeCategory];
+            const max = activeCategory === 'Textos' ? 10 : 20;
+            document.getElementById('progress-text').innerText = score;
+
+            if (score >= max) {
+                document.getElementById('question-text').classList.add('hidden');
+                document.getElementById('completion-message').classList.remove('hidden');
+                updateTeacher('alegre', "¡Enhorabuena! Has dominado esta sección por completo.", 'text-green-700');
+                return;
+            }
+
+            // Pick a random question that preferably helps progress (For simplicity, just random from bank)
+            // Note: Since we have exactly 20 questions in the normal bank, and need 20 points, 
+            // the user will see all of them eventually if we pick randomly.
+            
+            let sourceBank = activeCategory === 'Textos' ? textsBank : questionBank[activeCategory];
+            
+            // To prevent immediate repetition, pick randomly from the bank
+            currentQuestionObj = sourceBank[Math.floor(Math.random() * sourceBank.length)];
+
+            updateTeacher('explicando', "¿Preparado? Lee con atención y marca la opción correcta.");
+
+            if (activeCategory === 'Textos') {
+                const ctx = document.getElementById('text-context-container');
+                ctx.innerHTML = `"${currentQuestionObj.text}"`;
+                ctx.classList.remove('hidden');
+            }
+
+            document.getElementById('question-text').innerText = currentQuestionObj.q;
+
+            currentQuestionObj.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full text-left bg-gray-50 hover:bg-blue-100 border-2 border-gray-200 text-gray-800 font-medium py-4 px-6 rounded-xl text-lg";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(idx, btn);
+                document.getElementById('options-container').appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+            
+            document.getElementById('action-buttons').classList.remove('hidden');
+
+            if (selectedIndex === currentQuestionObj.correct) {
+                // Correct
+                btnElement.classList.replace('bg-gray-50', 'bg-green-100');
+                btnElement.classList.replace('hover:bg-blue-100', 'bg-green-100');
+                btnElement.classList.replace('border-gray-200', 'border-green-500');
+                btnElement.classList.add('text-green-800', 'font-bold');
+
+                userData.progress[activeCategory]++;
+                saveData();
+                document.getElementById('progress-text').innerText = userData.progress[activeCategory];
+
+                updateTeacher('alegre', "¡Correcto! ¡Muy bien hecho!", 'text-green-700');
+                document.getElementById('btn-next').classList.remove('hidden');
+            } else {
+                // Incorrect
+                btnElement.classList.replace('bg-gray-50', 'bg-red-100');
+                btnElement.classList.replace('hover:bg-blue-100', 'bg-red-100');
+                btnElement.classList.replace('border-gray-200', 'border-red-500');
+                btnElement.classList.add('text-red-800');
+
+                // Highlight correct
+                const correctBtn = buttons[currentQuestionObj.correct];
+                correctBtn.classList.replace('bg-gray-50', 'bg-green-50');
+                correctBtn.classList.replace('border-gray-200', 'border-green-400');
+
+                updateTeacher('estresado', `¡Uy! Te has equivocado.<br><br><span class="text-xs font-bold text-red-600">PISTA: ${currentQuestionObj.hint}</span>`, 'text-red-700');
+                
+                document.getElementById('btn-retry').classList.remove('hidden');
+                document.getElementById('btn-next').classList.remove('hidden'); // allow skipping
+            }
+        }
+
+        function retryQuestion() {
+            // Re-enable options and reset styling for the SAME question
+            document.getElementById('action-buttons').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('btn-retry').classList.add('hidden');
+            updateTeacher('explicando', "Venga, inténtalo de nuevo fijándote en la pista.");
+            
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.className = "option-btn w-full text-left bg-gray-50 hover:bg-blue-100 border-2 border-gray-200 text-gray-800 font-medium py-4 px-6 rounded-xl text-lg";
+            });
+        }
+    </script>
+</body>
+</html>
