@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liga Pádel Retro - Visual Ed.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --neon-yellow: #ffff00;
+            --neon-red: #ff003c;
+            --neon-orange: #ff9900;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #050505;
+            color: #fff;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* CRT Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Neon Utilities */
+        .neon-text-green { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+        .neon-text-pink { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+        .neon-text-blue { color: var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue); }
+        .neon-text-yellow { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+        .neon-text-red { color: var(--neon-red); text-shadow: 0 0 5px var(--neon-red); }
+        .neon-text-orange { color: var(--neon-orange); text-shadow: 0 0 5px var(--neon-orange); }
+        
+        .neon-border-blue { border: 4px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue), inset 0 0 10px var(--neon-blue); }
+        .neon-border-pink { border: 4px solid var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink), inset 0 0 10px var(--neon-pink); }
+        .neon-border-green { border: 4px solid var(--neon-green); box-shadow: 0 0 10px var(--neon-green), inset 0 0 10px var(--neon-green); }
+        .neon-border-yellow { border: 4px solid var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow), inset 0 0 10px var(--neon-yellow); }
+        .neon-border-orange { border: 4px solid var(--neon-orange); box-shadow: 0 0 10px var(--neon-orange), inset 0 0 10px var(--neon-orange); }
+        .neon-border-red { border: 4px solid var(--neon-red); box-shadow: 0 0 10px var(--neon-red), inset 0 0 10px var(--neon-red); }
+
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .pixelated { image-rendering: pixelated; }
+
+        /* Custom UI Elements */
+        .btn-retro {
+            background-color: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 15px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-retro:hover:not(:disabled) { background-color: #fff; color: #000; }
+        .btn-retro:active:not(:disabled) { transform: scale(0.95); }
+        .btn-retro:disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #555; }
+
+        input, select {
+            background-color: #111;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px;
+            font-family: 'Press Start 2P', cursive;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: var(--neon-pink); color: var(--neon-pink); }
+        
+        .set-input { width: 35px; text-align: center; padding: 4px; font-size: 10px; }
+
+        table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        th, td { border-bottom: 2px solid #333; padding: 1rem; text-align: center; }
+        th { color: var(--neon-yellow); }
+        tr:hover { background-color: #111; }
+
+        .hidden-app { display: none; }
+        
+        #modal-overlay, #msgbox-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+
+        #comments-list::-webkit-scrollbar { width: 8px; }
+        #comments-list::-webkit-scrollbar-track { background: #111; }
+        #comments-list::-webkit-scrollbar-thumb { background: var(--neon-green); }
+
+        /* Match Card specific */
+        .match-card { background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); }
+        .avatar-img { width: 48px; height: 48px; background: #000; border: 2px solid #333; }
+
+        /* Printable Diploma Container (Hidden) */
+        #diploma-container {
+            position: absolute; left: -9999px; top: -9999px;
+            width: 800px; height: 600px; background-color: #fff; color: #000;
+            padding: 40px; box-sizing: border-box; border: 15px solid #000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .diploma-title { font-size: 40px; color: #000; margin-bottom: 30px; text-transform: uppercase; font-family: 'Courier New', Courier, monospace; font-weight: bold;}
+        .diploma-subtitle { font-size: 20px; color: #333; margin-bottom: 40px; font-family: 'Courier New', Courier, monospace;}
+        .diploma-winners { font-size: 35px; color: #d32f2f; margin-bottom: 20px; text-decoration: underline; font-family: 'Courier New', Courier, monospace; font-weight: bold;}
+        .diploma-mvp { font-size: 20px; color: #1976d2; margin-top: 30px; font-family: 'Courier New', Courier, monospace; font-weight: bold;}
+        .diploma-footer { font-size: 12px; margin-top: 50px; color: #666; font-family: 'Courier New', Courier, monospace;}
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+    <div class="scanlines"></div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black">
+        <h1 class="text-3xl md:text-5xl font-bold neon-text-pink mb-4 text-center leading-tight">
+            LIGA PÁDEL<br>RETRO
+        </h1>
+        <p class="text-xs md:text-sm text-gray-400 mb-12 text-center neon-text-blue">VISUAL EDITION</p>
+        <div class="w-full max-w-md neon-border-blue p-8 bg-gray-900/80 rounded-lg">
+            <div class="mb-6">
+                <label class="block text-[10px] mb-2 text-white">USUARIO (minúsculas):</label>
+                <input type="text" id="login-username" class="text-xs w-full" placeholder="ej: fran, juanda...">
+            </div>
+            <div class="mb-8">
+                <label class="block text-[10px] mb-2 text-white">CONTRASEÑA:</label>
+                <input type="password" id="login-password" class="text-xs w-full" placeholder="1234">
+            </div>
+            <button onclick="handleLogin()" class="btn-retro w-full neon-text-green border-green-500 hover:bg-green-500 text-sm">
+                PRESS START
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app" class="hidden-app container mx-auto px-2 md:px-4 py-8 max-w-5xl relative z-10 pb-24">
+        
+        <!-- Header -->
+        <header class="mb-8 mt-4 border-b-4 border-gray-700 pb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl md:text-3xl font-bold neon-text-pink mb-2">LIGA PÁDEL 8-BIT</h1>
+                <p class="text-[10px] md:text-xs neon-text-blue">JUGADOR: <span id="current-player-display" class="neon-text-yellow"></span></p>
+            </div>
+            <div class="flex gap-2">
+                 <img id="header-avatar" src="" class="w-12 h-12 pixelated border-2 border-yellow-500 bg-black">
+            </div>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <div class="flex flex-wrap justify-center gap-2 mb-8 border-b border-gray-800 pb-4">
+            <button onclick="switchTab('tab-clasificacion')" id="btn-tab-clasificacion" class="btn-retro neon-text-blue border-blue-500 text-[10px] md:text-xs bg-blue-900/20">CLASIFICACIÓN</button>
+            <button onclick="switchTab('tab-calendario')" id="btn-tab-calendario" class="btn-retro text-gray-400 border-gray-600 text-[10px] md:text-xs">CALENDARIO</button>
+            <button onclick="switchTab('tab-stats')" id="btn-tab-stats" class="btn-retro text-gray-400 border-gray-600 text-[10px] md:text-xs">MURO CAÑAS / STATS</button>
+        </div>
+
+        <!-- TAB: CLASIFICACIÓN -->
+        <div id="tab-clasificacion" class="tab-content block">
+            <section class="mb-12 neon-border-blue bg-black/80 p-4 rounded-lg">
+                <h2 class="text-lg md:text-xl neon-text-blue mb-2 text-center">- CLASIFICACIÓN -</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-[8px] md:text-xs">
+                        <thead>
+                            <tr>
+                                <th class="text-left">POS</th>
+                                <th class="text-left">EQUIPO</th>
+                                <th>PTS</th>
+                                <th>PJ</th>
+                                <th>G</th>
+                                <th>P</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standings-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MVP Trash Talk -->
+            <section class="mb-12 neon-border-yellow bg-black/80 p-4 rounded-lg">
+                <h2 class="text-lg md:text-xl neon-text-yellow mb-2 text-center">- GLOBAL TRASH TALK -</h2>
+                <div id="comments-list" class="h-64 overflow-y-auto mb-4 p-2 bg-gray-900 border border-gray-700 space-y-3 flex flex-col"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="comment-input" placeholder="Escribe aquí..." class="flex-1 text-[10px] md:text-xs">
+                    <button onclick="submitComment()" class="btn-retro border-yellow-500 neon-text-yellow text-[10px] shrink-0">ENVIAR</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB: CALENDARIO -->
+        <div id="tab-calendario" class="tab-content hidden">
+            <section class="mb-12">
+                <h2 class="text-lg md:text-xl text-white mb-2 text-center border-b-2 border-white pb-2">- CALENDARIO Y RESULTADOS -</h2>
+                <p class="text-[8px] md:text-[10px] text-center text-gray-400 mb-6 max-w-2xl mx-auto">
+                    Añade los sets directamente aquí. Si tú propones, el rival debe aceptar el resultado.
+                </p>
+                <div class="space-y-8" id="schedule-container">
+                    <!-- Cards injected here -->
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB: STATS (Muro & H2H) -->
+        <div id="tab-stats" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                <!-- Muro -->
+                <section class="neon-border-orange bg-black/80 p-4 rounded-lg flex flex-col">
+                    <h2 class="text-base md:text-lg neon-text-orange mb-2 text-center">- MURO DE LAS CAÑAS -</h2>
+                    <p class="text-[8px] text-center text-gray-400 mb-4">Peor racha de derrotas</p>
+                    <div class="flex-1 flex flex-col items-center justify-center text-center p-4 bg-gray-900 border border-orange-900">
+                        <div id="muro-container" class="w-full"></div>
+                    </div>
+                </section>
+                <!-- H2H -->
+                <section class="neon-border-green bg-black/80 p-4 rounded-lg flex flex-col">
+                    <h2 class="text-base md:text-lg neon-text-green mb-2 text-center">- HEAD TO HEAD -</h2>
+                    <div class="flex flex-col gap-4 bg-gray-900 p-4 border border-green-900 flex-1">
+                        <div class="flex gap-2">
+                            <select id="h2h-team1" onchange="updateH2H()" class="text-[8px] md:text-[10px] p-2 w-1/2"></select>
+                            <span class="text-white self-center text-[10px]">VS</span>
+                            <select id="h2h-team2" onchange="updateH2H()" class="text-[8px] md:text-[10px] p-2 w-1/2"></select>
+                        </div>
+                        <div id="h2h-results" class="flex-1 flex flex-col items-center justify-center min-h-[100px]"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- PDF Button -->
+        <section class="text-center py-12 border-t border-gray-800">
+            <button onclick="generatePDF()" class="btn-retro border-blue-500 neon-text-blue text-[10px] md:text-sm px-8 py-4">
+                🏆 GENERAR DIPLOMA (PDF) 🏆
+            </button>
+        </section>
+    </div>
+
+    <!-- MessageBox Modal -->
+    <div id="msgbox-overlay" class="fixed inset-0 z-[200] hidden flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm neon-border-pink p-6 bg-gray-900 text-center">
+            <h3 class="text-sm neon-text-pink mb-4" id="msgbox-title">MENSAJE</h3>
+            <p class="text-[10px] text-white mb-6 leading-relaxed" id="msgbox-text">Texto</p>
+            <button onclick="closeMsgBox()" class="btn-retro text-[10px] border-white w-full">OK</button>
+        </div>
+    </div>
+
+    <!-- Hidden Diploma Template -->
+    <div id="diploma-container">
+        <div class="diploma-title">CERTIFICADO OFICIAL</div>
+        <div class="diploma-subtitle">LIGA DE PÁDEL - 8 BIT EDITION 2026</div>
+        <div style="margin-bottom: 20px;">Por la presente se certifica que la pareja:</div>
+        <div class="diploma-winners" id="pdf-winners">NOMBRE Y NOMBRE</div>
+        <div>Ha obtenido el glorioso TÍTULO DE CAMPEONES.</div>
+        <div style="border-top: 2px solid #ccc; width: 60%; margin: 30px auto;"></div>
+        <div>MVP Absoluto de la temporada:</div>
+        <div class="diploma-mvp" id="pdf-mvp">JUGADOR MVP</div>
+        <div class="diploma-footer">Emitido digitalmente.</div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDocs, setDoc, updateDoc, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const APP_ID = 'padel_league_v7_visual';
+        let db, auth;
+        let currentUserData = null;
+        let matchesData = [];
+        let commentsData = [];
+        let standingsData = [];
+
+        const PLAYERS = {
+            'fran': { id: 'fran', name: 'Fran', teamId: 1 },
+            'aguilar': { id: 'aguilar', name: 'Aguilar', teamId: 1 },
+            'arroyo': { id: 'arroyo', name: 'Arroyo', teamId: 2 },
+            'david': { id: 'david', name: 'David Vecino', teamId: 2 },
+            'manu': { id: 'manu', name: 'Manu Sánchez', teamId: 3 },
+            'jorge': { id: 'jorge', name: 'Jorge', teamId: 3 },
+            'juanda': { id: 'juanda', name: 'Juanda', teamId: 4 },
+            'mene': { id: 'mene', name: 'Mene', teamId: 4 }
+        };
+
+        const TEAMS = {
+            1: { id: 1, name: "Aguilar-Fran", p1: "Fran", p2: "Aguilar" },
+            2: { id: 2, name: "Arroyo-David", p1: "Arroyo", p2: "David" },
+            3: { id: 3, name: "Manu-Jorge", p1: "Manu", p2: "Jorge" },
+            4: { id: 4, name: "Juanda-Mene", p1: "Juanda", p2: "Mene" }
+        };
+
+        const INITIAL_SCHEDULE = [
+            { id: "j1_m1", j_num: 1, j_name: "J1 - 1 Nov", t1: 1, t2: 2, type: "regular" },
+            { id: "j1_m2", j_num: 1, j_name: "J1 - 1 Nov", t1: 3, t2: 4, type: "regular" },
+            { id: "j2_m1", j_num: 2, j_name: "J2 - 8 Nov", t1: 1, t2: 3, type: "regular" },
+            { id: "j2_m2", j_num: 2, j_name: "J2 - 8 Nov", t1: 2, t2: 4, type: "regular" },
+            { id: "j3_m1", j_num: 3, j_name: "J3 - 15 Nov", t1: 1, t2: 4, type: "regular" },
+            { id: "j3_m2", j_num: 3, j_name: "J3 - 15 Nov", t1: 2, t2: 3, type: "regular" },
+            { id: "j4_m1", j_num: 4, j_name: "J4 - 22 Nov", t1: 2, t2: 1, type: "regular" },
+            { id: "j4_m2", j_num: 4, j_name: "J4 - 22 Nov", t1: 4, t2: 3, type: "regular" },
+            { id: "j5_m1", j_num: 5, j_name: "J5 - 29 Nov", t1: 3, t2: 1, type: "regular" },
+            { id: "j5_m2", j_num: 5, j_name: "J5 - 29 Nov", t1: 4, t2: 2, type: "regular" },
+            { id: "j6_m1", j_num: 6, j_name: "J6 - 6 Dic", t1: 4, t2: 1, type: "regular" },
+            { id: "j6_m2", j_num: 6, j_name: "J6 - 6 Dic", t1: 3, t2: 2, type: "regular" },
+            { id: "j7_final", j_num: 7, j_name: "FINAL - 13 Dic", t1: "TBD", t2: "TBD", type: "final" }
+        ];
+
+        const getAvatar = (seed) => `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(seed)}`;
+
+        window.showMsgBox = function(title, text) {
+            document.getElementById('msgbox-title').innerText = title;
+            document.getElementById('msgbox-text').innerHTML = text;
+            document.getElementById('msgbox-overlay').classList.remove('hidden');
+            document.getElementById('msgbox-overlay').classList.add('flex');
+        };
+        window.closeMsgBox = function() {
+            document.getElementById('msgbox-overlay').classList.add('hidden');
+            document.getElementById('msgbox-overlay').classList.remove('flex');
+        };
+
+        async function initFirebaseApp() {
+            try {
+                // SI QUIERES JUGAR ONLINE REAL CON TUS AMIGOS, PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE:
+                const myFirebaseConfig = {
+                    // apiKey: "TU_API_KEY",
+                    // authDomain: "TU_DOMINIO",
+                    // projectId: "TU_PROJECT_ID",
+                    // ...
+                };
+
+                const envConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
+                const finalConfig = Object.keys(myFirebaseConfig).length > 0 ? myFirebaseConfig : envConfig;
+
+                const app = initializeApp(finalConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof window.__initial_auth_token !== 'undefined' && Object.keys(myFirebaseConfig).length === 0) {
+                    await signInWithCustomToken(auth, window.__initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                await setupData();
+                populateH2HDropdowns();
+            } catch (error) {
+                console.error("Firebase Init Error:", error);
+                // Si Firebase falla al inicio, forzamos la carga de datos locales
+                await setupData();
+                populateH2HDropdowns();
+            }
+        }
+
+        async function setupData() {
+            try {
+                const matchesRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'matches');
+                const commentsRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'comments');
+            
+                const mSnapshot = await getDocs(matchesRef);
+                if (mSnapshot.empty) {
+                    for (const match of INITIAL_SCHEDULE) {
+                        await setDoc(doc(matchesRef, match.id), {
+                            ...match,
+                            status: 'pending',
+                            winner: null, mvp: null, sets: null,
+                            proposedWinner: null, proposedMVP: null, proposedSets: null, proposedByTeam: null
+                        });
+                    }
+                }
+
+                onSnapshot(query(matchesRef), (snap) => {
+                    matchesData = [];
+                    snap.forEach(doc => matchesData.push({ ...doc.data(), id: doc.id }));
+                    matchesData.sort((a, b) => a.j_num - b.j_num || a.id.localeCompare(b.id)); 
+                    
+                    if (currentUserData) {
+                        calculateStandings(); 
+                        checkFinals();
+                        updateUI();
+                    }
+                });
+
+                onSnapshot(query(commentsRef), (snap) => {
+                    commentsData = [];
+                    snap.forEach(doc => commentsData.push({ ...doc.data(), id: doc.id }));
+                    commentsData.sort((a, b) => a.timestamp - b.timestamp); 
+                    if (currentUserData) renderComments();
+                });
+            } catch (error) {
+                console.error("Data Setup Error (Probablemente permisos insuficientes):", error);
+                
+                // MODO LOCAL: Fallback para que la UI funcione aunque Firebase bloquee la conexión
+                if(!currentUserData) {
+                    setTimeout(() => showMsgBox("MODO BORRADOR (LOCAL)", "No se pudo conectar a la BD por permisos. Los datos no se guardarán online, pero puedes probar la app en modo local."), 1000);
+                }
+
+                matchesData = INITIAL_SCHEDULE.map(m => ({
+                    ...m, status: 'pending', winner: null, mvp: null, sets: null,
+                    proposedWinner: null, proposedMVP: null, proposedSets: null, proposedByTeam: null
+                }));
+                commentsData = [{ id: '1', author: 'Sistema', text: 'Modo Borrador Local activado.', timestamp: Date.now() }];
+                
+                if (currentUserData) {
+                    calculateStandings();
+                    updateUI();
+                    renderComments();
+                }
+            }
+        }
+
+        function calculateStandings() {
+            const stats = {
+                1: { pts: 0, p: 0, w: 0, l: 0 }, 2: { pts: 0, p: 0, w: 0, l: 0 },
+                3: { pts: 0, p: 0, w: 0, l: 0 }, 4: { pts: 0, p: 0, w: 0, l: 0 },
+            };
+
+            matchesData.forEach(m => {
+                if (m.type === 'regular' && m.status === 'completed' && m.winner) {
+                    stats[m.t1].p++; stats[m.t2].p++;
+                    const loser = m.winner === m.t1 ? m.t2 : m.t1;
+                    stats[m.winner].w++; stats[m.winner].pts += 3;
+                    stats[loser].l++;
+                }
+            });
+
+            standingsData = Object.keys(stats).map(id => ({
+                id: parseInt(id), name: TEAMS[id].name, ...stats[id]
+            })).sort((a, b) => b.pts - a.pts || b.w - a.w);
+        }
+
+        async function checkFinals() {
+            const regularMatches = matchesData.filter(m => m.type === 'regular');
+            const allCompleted = regularMatches.length === 12 && regularMatches.every(m => m.status === 'completed');
+            if (allCompleted) {
+                const finalMatch = matchesData.find(m => m.id === 'j7_final');
+                if (finalMatch && finalMatch.t1 === "TBD" && standingsData.length >= 2) {
+                    await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'matches', 'j7_final'), {
+                        t1: standingsData[0].id, t2: standingsData[1].id
+                    });
+                }
+            }
+        }
+
+        window.handleLogin = function() {
+            const username = document.getElementById('login-username').value.toLowerCase().trim();
+            const pass = document.getElementById('login-password').value;
+            
+            if (!PLAYERS[username] || pass !== '1234') { 
+                showMsgBox("ERROR", "Usuario no encontrado o contraseña (1234) incorrecta."); return; 
+            }
+
+            currentUserData = PLAYERS[username];
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            
+            document.getElementById('current-player-display').innerText = `${currentUserData.name} (${TEAMS[currentUserData.teamId].name})`;
+            document.getElementById('header-avatar').src = getAvatar(currentUserData.name);
+
+            calculateStandings(); 
+            updateUI();
+            renderComments(); 
+        };
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => { el.classList.remove('block'); el.classList.add('hidden'); });
+            document.getElementById(tabId).classList.remove('hidden'); document.getElementById(tabId).classList.add('block');
+
+            const btns = ['btn-tab-clasificacion', 'btn-tab-calendario', 'btn-tab-stats'];
+            btns.forEach(id => document.getElementById(id).className = "btn-retro text-gray-400 border-gray-600 text-[10px] md:text-xs");
+            document.getElementById('btn-' + tabId).className = "btn-retro neon-text-blue border-blue-500 text-[10px] md:text-xs bg-blue-900/20";
+        };
+
+        function updateUI() {
+            renderStandingsUI();
+            renderSchedule();
+            renderMuro();
+            updateH2H();
+        }
+
+        function renderStandingsUI() {
+            const tbody = document.getElementById('standings-body');
+            tbody.innerHTML = '';
+            standingsData.forEach((s, i) => {
+                let color = i === 0 ? "neon-text-green font-bold" : (i === 1 ? "neon-text-blue" : "text-gray-400");
+                tbody.innerHTML += `
+                    <tr class="${color}">
+                        <td>${i + 1}</td>
+                        <td class="text-left">${s.name} ${i < 2 ? '👑' : ''}</td>
+                        <td class="font-bold neon-text-yellow">${s.pts}</td>
+                        <td>${s.p}</td><td>${s.w}</td><td>${s.l}</td>
+                    </tr>`;
+            });
+        }
+
+        // --- CALENDAR RENDERER (THE COMPLEX PART) ---
+        function renderSchedule() {
+            const container = document.getElementById('schedule-container');
+            container.innerHTML = '';
+
+            const jornadas = {};
+            matchesData.forEach(m => {
+                if (!jornadas[m.j_name]) jornadas[m.j_name] = [];
+                jornadas[m.j_name].push(m);
+            });
+
+            for (const [jName, matches] of Object.entries(jornadas)) {
+                let html = `<div class="mb-8 border-2 border-gray-800 p-2 md:p-4 rounded bg-[#0a0a0a]">
+                                <h3 class="text-xs md:text-sm neon-text-pink mb-4 text-center">${jName}</h3>
+                                <div class="grid grid-cols-1 gap-6">`;
+
+                matches.forEach(m => {
+                    const isTBD = (m.t1 === "TBD" || m.t2 === "TBD");
+                    if (isTBD) {
+                        html += `<div class="match-card border border-gray-700 p-4 text-center text-gray-500 text-[10px] md:text-xs">
+                                    [FINAL] ESPERANDO FASE REGULAR
+                                 </div>`;
+                        return;
+                    }
+
+                    const t1 = TEAMS[m.t1]; const t2 = TEAMS[m.t2];
+                    const isMyMatch = m.t1 === currentUserData.teamId || m.t2 === currentUserData.teamId;
+
+                    // Build Team Avatars block
+                    const team1Html = `
+                        <div class="flex flex-col items-center w-1/4">
+                            <div class="flex gap-1 mb-1">
+                                <img src="${getAvatar(t1.p1)}" title="${t1.p1}" class="avatar-img pixelated">
+                                <img src="${getAvatar(t1.p2)}" title="${t1.p2}" class="avatar-img pixelated">
+                            </div>
+                            <span class="text-[8px] md:text-[10px] ${m.winner===t1.id?'neon-text-green':'text-gray-300'} truncate w-full text-center">${t1.name}</span>
+                        </div>`;
+                    
+                    const team2Html = `
+                        <div class="flex flex-col items-center w-1/4">
+                            <div class="flex gap-1 mb-1">
+                                <img src="${getAvatar(t2.p1)}" title="${t2.p1}" class="avatar-img pixelated">
+                                <img src="${getAvatar(t2.p2)}" title="${t2.p2}" class="avatar-img pixelated">
+                            </div>
+                            <span class="text-[8px] md:text-[10px] ${m.winner===t2.id?'neon-text-green':'text-gray-300'} truncate w-full text-center">${t2.name}</span>
+                        </div>`;
+
+                    // Middle Section (Inputs or Results)
+                    let middleHtml = '';
+
+                    if (m.status === 'pending') {
+                        // Pending Input Form
+                        middleHtml = `
+                            <div class="flex flex-col items-center justify-center w-2/4 px-2">
+                                <div class="flex gap-2 mb-2">
+                                    <div class="flex flex-col items-center"><span class="text-[6px] text-gray-500">S1</span><div class="flex items-center gap-1"><input type="text" id="${m.id}_s1t1" class="set-input" maxlength="2">-<input type="text" id="${m.id}_s1t2" class="set-input" maxlength="2"></div></div>
+                                    <div class="flex flex-col items-center"><span class="text-[6px] text-gray-500">S2</span><div class="flex items-center gap-1"><input type="text" id="${m.id}_s2t1" class="set-input" maxlength="2">-<input type="text" id="${m.id}_s2t2" class="set-input" maxlength="2"></div></div>
+                                    <div class="flex flex-col items-center"><span class="text-[6px] text-gray-500">S3</span><div class="flex items-center gap-1"><input type="text" id="${m.id}_s3t1" class="set-input" maxlength="2">-<input type="text" id="${m.id}_s3t2" class="set-input" maxlength="2"></div></div>
+                                </div>
+                                <select id="${m.id}_mvp" class="text-[8px] mb-2 w-full max-w-[150px]">
+                                    <option value="">-- Elige MVP --</option>
+                                    <option value="${t1.p1}">${t1.p1}</option><option value="${t1.p2}">${t1.p2}</option>
+                                    <option value="${t2.p1}">${t2.p1}</option><option value="${t2.p2}">${t2.p2}</option>
+                                </select>
+                                ${isMyMatch ? `<button onclick="proposeResult('${m.id}')" class="btn-retro border-yellow-500 neon-text-yellow text-[8px] px-2 py-1 w-full max-w-[150px]">PROPONER</button>` 
+                                            : `<span class="text-[8px] text-gray-600 border border-gray-800 p-1">PENDIENTE</span>`}
+                            </div>`;
+                    } else if (m.status === 'awaiting_approval') {
+                        const iAmValidator = isMyMatch && m.proposedByTeam !== currentUserData.teamId;
+                        const setsStr = formatSetsString(m.proposedSets);
+                        
+                        middleHtml = `
+                            <div class="flex flex-col items-center justify-center w-2/4 px-2 border border-red-900 bg-[#1a0505] p-2">
+                                <span class="text-[8px] text-red-500 blink mb-1">VALIDACIÓN</span>
+                                <span class="text-[10px] text-white font-bold mb-1">${setsStr}</span>
+                                <span class="text-[8px] text-gray-400 mb-2">MVP: <span class="neon-text-yellow">${m.proposedMVP}</span></span>
+                                ${iAmValidator ? `
+                                    <div class="flex gap-1 w-full justify-center">
+                                        <button onclick="handleValidation('${m.id}', true)" class="btn-retro text-[8px] border-green-500 neon-text-green px-2 py-1 flex-1">✅</button>
+                                        <button onclick="handleValidation('${m.id}', false)" class="btn-retro text-[8px] border-red-500 neon-text-red px-2 py-1 flex-1">❌</button>
+                                    </div>` 
+                                    : `<span class="text-[8px] text-gray-500">Esperando al rival...</span>`}
+                            </div>`;
+                    } else {
+                        // Completed
+                        const setsStr = formatSetsString(m.sets);
+                        middleHtml = `
+                            <div class="flex flex-col items-center justify-center w-2/4 px-2 border border-green-900 bg-[#051a05] p-2">
+                                <span class="text-[10px] md:text-xs neon-text-green font-bold mb-2 tracking-widest">${setsStr}</span>
+                                <div class="flex items-center gap-1 bg-black p-1 border border-yellow-600">
+                                    <img src="${getAvatar(m.mvp)}" class="w-6 h-6 pixelated border border-yellow-500">
+                                    <span class="text-[8px] neon-text-yellow">MVP</span>
+                                </div>
+                            </div>`;
+                    }
+
+                    html += `
+                        <div class="match-card border ${m.status==='completed'?'border-green-800':'border-gray-700'} p-3 flex flex-row items-center justify-between w-full">
+                            ${team1Html}
+                            ${middleHtml}
+                            ${team2Html}
+                        </div>`;
+                });
+                html += `</div></div>`;
+                container.innerHTML += html;
+            }
+        }
+
+        // Helpers for UI
+        function formatSetsString(setsObj) {
+            if(!setsObj) return "";
+            let s = [];
+            if(setsObj.s1t1!=='' && setsObj.s1t2!=='') s.push(`${setsObj.s1t1}-${setsObj.s1t2}`);
+            if(setsObj.s2t1!=='' && setsObj.s2t2!=='') s.push(`${setsObj.s2t1}-${setsObj.s2t2}`);
+            if(setsObj.s3t1!=='' && setsObj.s3t2!=='') s.push(`${setsObj.s3t1}-${setsObj.s3t2}`);
+            return s.join(' | ');
+        }
+
+        window.proposeResult = async function(matchId) {
+            const m = matchesData.find(x => x.id === matchId);
+            const s1t1 = document.getElementById(`${matchId}_s1t1`).value.trim();
+            const s1t2 = document.getElementById(`${matchId}_s1t2`).value.trim();
+            const s2t1 = document.getElementById(`${matchId}_s2t1`).value.trim();
+            const s2t2 = document.getElementById(`${matchId}_s2t2`).value.trim();
+            const s3t1 = document.getElementById(`${matchId}_s3t1`).value.trim();
+            const s3t2 = document.getElementById(`${matchId}_s3t2`).value.trim();
+            const mvp = document.getElementById(`${matchId}_mvp`).value;
+
+            if(!s1t1 || !s1t2 || !s2t1 || !s2t2 || !mvp) {
+                showMsgBox("ERROR", "Necesitas al menos 2 sets rellenados y un MVP."); return;
+            }
+
+            // Calculate Winner logic (simplified: who won more sets)
+            let t1Wins = 0, t2Wins = 0;
+            if(parseInt(s1t1) > parseInt(s1t2)) t1Wins++; else if(parseInt(s1t2) > parseInt(s1t1)) t2Wins++;
+            if(parseInt(s2t1) > parseInt(s2t2)) t1Wins++; else if(parseInt(s2t2) > parseInt(s2t1)) t2Wins++;
+            if(s3t1 && s3t2) {
+                if(parseInt(s3t1) > parseInt(s3t2)) t1Wins++; else if(parseInt(s3t2) > parseInt(s3t1)) t2Wins++;
+            }
+
+            if(t1Wins === t2Wins) {
+                showMsgBox("ERROR", "¡No puede haber empate en sets!"); return;
+            }
+
+            const winnerId = t1Wins > t2Wins ? m.t1 : m.t2;
+            const setsObj = { s1t1, s1t2, s2t1, s2t2, s3t1, s3t2 };
+
+            try {
+                await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'matches', matchId), {
+                    status: 'awaiting_approval', proposedWinner: winnerId, proposedMVP: mvp, 
+                    proposedSets: setsObj, proposedByTeam: currentUserData.teamId
+                });
+                showMsgBox("ENVIADO", "Resultado enviado. Esperando validación del rival.");
+            } catch (e) { 
+                console.error(e); 
+                // MODO LOCAL
+                const idx = matchesData.findIndex(x => x.id === matchId);
+                if(idx > -1) {
+                    matchesData[idx].status = 'awaiting_approval';
+                    matchesData[idx].proposedWinner = winnerId;
+                    matchesData[idx].proposedMVP = mvp;
+                    matchesData[idx].proposedSets = setsObj;
+                    matchesData[idx].proposedByTeam = currentUserData.teamId;
+                    showMsgBox("ENVIADO (LOCAL)", "Resultado enviado en modo local (simulación).");
+                    updateUI();
+                }
+            }
+        }
+
+        window.handleValidation = async function(matchId, isAccepted) {
+            const m = matchesData.find(x => x.id === matchId);
+            const ref = db ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'matches', matchId) : null;
+            try {
+                if (isAccepted) {
+                    await updateDoc(ref, {
+                        status: 'completed', winner: m.proposedWinner, mvp: m.proposedMVP, sets: m.proposedSets
+                    });
+                } else {
+                    await updateDoc(ref, {
+                        status: 'pending', proposedWinner: null, proposedMVP: null, proposedSets: null, proposedByTeam: null
+                    });
+                    showMsgBox("RECHAZADO", "Has rechazado el resultado.");
+                }
+            } catch (e) { 
+                console.error(e); 
+                // MODO LOCAL
+                if (isAccepted) {
+                    m.status = 'completed'; m.winner = m.proposedWinner; m.mvp = m.proposedMVP; m.sets = m.proposedSets;
+                } else {
+                    m.status = 'pending'; m.proposedWinner = null; m.proposedMVP = null; m.proposedSets = null; m.proposedByTeam = null;
+                    showMsgBox("RECHAZADO", "Has rechazado el resultado (Modo Local).");
+                }
+                calculateStandings();
+                updateUI();
+            }
+        }
+
+        // --- STATS & CHAT ---
+        function renderMuro() {
+            const container = document.getElementById('muro-container');
+            const streaks = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            const completed = matchesData.filter(m => m.status === 'completed').sort((a, b) => a.j_num - b.j_num);
+            
+            let worstTeam = null; let maxStreak = 0;
+            completed.forEach(m => {
+                const loser = m.winner === m.t1 ? m.t2 : m.t1;
+                streaks[loser]++; streaks[m.winner] = 0;
+            });
+
+            for (let [teamId, s] of Object.entries(streaks)) {
+                if (s > maxStreak) { maxStreak = s; worstTeam = teamId; }
+            }
+
+            if (maxStreak >= 2 && worstTeam) {
+                container.innerHTML = `<div class="text-3xl mb-2 blink">🍻</div><h3 class="text-[10px] md:text-sm neon-text-orange mb-1">¡PAGAN ELLOS!</h3>
+                    <p class="font-bold text-white mb-2 text-[12px]">${TEAMS[worstTeam].name}</p>
+                    <p class="text-[10px] text-gray-400 border border-gray-700 p-1 inline-block">${maxStreak} Derrotas Seguidas</p>`;
+            } else { container.innerHTML = `<p class="text-[8px] text-gray-500">Esperando rachas...</p>`; }
+        }
+
+        function populateH2HDropdowns() {
+            const s1 = document.getElementById('h2h-team1'); const s2 = document.getElementById('h2h-team2');
+            const opts = Object.values(TEAMS).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            s1.innerHTML = opts; s2.innerHTML = opts; s2.selectedIndex = 1;
+        }
+
+        window.updateH2H = function() {
+            const t1 = parseInt(document.getElementById('h2h-team1').value); const t2 = parseInt(document.getElementById('h2h-team2').value);
+            const container = document.getElementById('h2h-results');
+            if (t1 === t2) { container.innerHTML = `<p class="text-[8px] text-gray-500">Distintos equipos!</p>`; return; }
+
+            const m = matchesData.filter(x => x.status === 'completed' && ((x.t1===t1&&x.t2===t2)||(x.t1===t2&&x.t2===t1)));
+            let w1=0, w2=0; m.forEach(x => { if(x.winner===t1) w1++; if(x.winner===t2) w2++; });
+
+            container.innerHTML = `
+                <div class="flex items-center justify-center gap-6 w-full">
+                    <div class="text-center flex-1"><div class="text-xl font-bold ${w1>=w2&&w1>0?'neon-text-green':'text-gray-600'}">${w1}</div><div class="text-[8px] text-gray-400 mt-2">${TEAMS[t1].name}</div></div>
+                    <div class="text-[10px] text-gray-600 font-bold">VS</div>
+                    <div class="text-center flex-1"><div class="text-xl font-bold ${w2>=w1&&w2>0?'neon-text-green':'text-gray-600'}">${w2}</div><div class="text-[8px] text-gray-400 mt-2">${TEAMS[t2].name}</div></div>
+                </div>`;
+        }
+
+        window.submitComment = async function() {
+            const input = document.getElementById('comment-input');
+            const text = input.value.trim();
+            if (!text || !currentUserData) return;
+            try {
+                input.value = '';
+                await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'comments'), {
+                    text: text, author: currentUserData.name, timestamp: Date.now()
+                });
+            } catch (error) { 
+                console.error(error); 
+                // MODO LOCAL
+                commentsData.push({ id: Date.now().toString(), text: text, author: currentUserData.name, timestamp: Date.now() });
+                renderComments();
+            }
+        }
+
+        function renderComments() {
+            const list = document.getElementById('comments-list');
+            list.innerHTML = '';
+            commentsData.forEach(c => {
+                const isMe = c.author === currentUserData?.name;
+                const align = isMe ? 'self-end bg-blue-900/50 border-blue-500 text-right' : 'self-start bg-gray-800 border-gray-600 text-left';
+                const cName = isMe ? 'neon-text-blue' : 'neon-text-yellow';
+                list.innerHTML += `<div class="border p-2 rounded max-w-[85%] ${align}"><div class="text-[8px] ${cName} mb-1">${c.author}</div><div class="text-[10px] text-white break-words">${c.text}</div></div>`;
+            });
+            list.scrollTop = list.scrollHeight;
+        }
+
+        // PDF Generation
+        window.generatePDF = function() {
+            const final = matchesData.find(m => m.id === 'j7_final');
+            if (!final || final.status !== 'completed' || !final.winner) {
+                showMsgBox("BLOQUEADO", "La final debe estar completada."); return;
+            }
+
+            const mvpCounts = {};
+            matchesData.filter(m => m.status === 'completed' && m.mvp).forEach(m => mvpCounts[m.mvp] = (mvpCounts[m.mvp]||0)+1);
+            let topMVP = "Nadie", max=0;
+            for(let [p,c] of Object.entries(mvpCounts)) { if(c>max){max=c;topMVP=p;} }
+
+            document.getElementById('pdf-winners').innerText = TEAMS[final.winner].name.toUpperCase();
+            document.getElementById('pdf-mvp').innerText = `${topMVP.toUpperCase()} (${max} Trofeos MVP)`;
+
+            const element = document.getElementById('diploma-container');
+            const opt = {
+                margin: 10, filename: 'Diploma.pdf', image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            element.style.left = '0'; element.style.top = '0'; element.style.zIndex = '-1';
+            html2pdf().set(opt).from(element).save().then(() => { element.style.left = '-9999px'; element.style.top = '-9999px'; });
+        }
+
+        window.addEventListener('load', initFirebaseApp);
+    </script>
+</body>
+</html>
